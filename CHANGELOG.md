@@ -11,6 +11,10 @@ breaking changes ship as a new `v2/` directory.
 - Facebook Stories ad: full-bleed 9:16, segmented progress bar (carousel cards
   become progress segments and sync on swipe), Sponsored header with menu/close,
   optional overlaid copy, swipe-up chevron + CTA pill. All three formats supported.
+- Story progress segments fill cumulatively — every card you've viewed stays lit,
+  matching real Stories. Feed carousel dots keep single-active behavior.
+- Story copy hard-clamps with an ellipsis (no See-more affordance in a story) and
+  sits on a stronger scrim so it stays legible over bright creative.
 
 ## 1.0.0 — 2026-07-08
 
