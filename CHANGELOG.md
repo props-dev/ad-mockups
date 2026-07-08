@@ -4,6 +4,14 @@ Versions track the `VERSION` const in `v1/ad-mockup.html` (mirrored in the
 `ad-mockup-version` meta tag). Param changes within `v1/` are additive-only;
 breaking changes ship as a new `v2/` directory.
 
+## 1.1.0 — 2026-07-08
+
+- New `placement` param (additive): `feed` (default) | `story`. Facebook only for
+  now; other platforms ignore it, unknown values fall back to `feed`.
+- Facebook Stories ad: full-bleed 9:16, segmented progress bar (carousel cards
+  become progress segments and sync on swipe), Sponsored header with menu/close,
+  optional overlaid copy, swipe-up chevron + CTA pill. All three formats supported.
+
 ## 1.0.0 — 2026-07-08
 
 Initial release.

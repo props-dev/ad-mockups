@@ -83,6 +83,18 @@ requests). Each cell shows the exact URL that produces it.</p>
     });
   });
 
+  /* facebook story placement (placement=story) */
+  ["image", "video", "carousel"].forEach(function (format) {
+    var media = format === "video" ? VIDEO :
+      format === "carousel" ? [IMG("fbs-c1", 720, 1280), IMG("fbs-c2", 720, 1280), IMG("fbs-c3", 720, 1280)] :
+      IMG("fbs-img", 720, 1280);
+    cases.push({
+      label: "facebook story / " + format,
+      p: merge(CREATOR, COPYSET, { platform: "facebook", placement: "story", format: format,
+        media: media }, format === "video" ? { poster: IMG("fbs-poster", 720, 1280) } : {})
+    });
+  });
+
   /* edge cases */
   cases.push({ label: "facebook / no media, no avatar (placeholders)",
     p: { platform: "facebook", creator: "Sam Okafor", copy: "Placeholder mode — no media params passed." } });
@@ -106,7 +118,7 @@ requests). Each cell shows the exact URL that produces it.</p>
 
   var grid = document.getElementById("grid");
   cases.forEach(function (c) {
-    var size = SIZES[c.p.platform] || [375, 640];
+    var size = c.p.placement === "story" ? [375, 667] : (SIZES[c.p.platform] || [375, 640]);
     var url = "ad-mockup.html?" + qs(c.p);
     var cell = document.createElement("div");
     cell.className = "cell";

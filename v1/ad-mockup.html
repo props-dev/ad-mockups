@@ -8,7 +8,7 @@
      object/fetch even if an escaping bug slipped through. script-src must stay
      'unsafe-inline' because the whole app is the inline script below. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src https: data:; media-src https:; base-uri 'none'; form-action 'none'">
-<meta name="ad-mockup-version" content="1.0.0">
+<meta name="ad-mockup-version" content="1.1.0">
 <title>Ad Preview</title>
 <style>
   /* ============ base ============ */
@@ -126,6 +126,46 @@
     padding: 10px 0; font-size: 13px; font-weight: 600; color: #65676b; }
   .fb-action svg { width: 18px; height: 18px; fill: #65676b; }
   .fb .verified svg { width: 13px; height: 13px; fill: #1877f2; }
+
+  /* ============================================================
+     FACEBOOK story (placement=story) — full-bleed 9:16
+     ============================================================ */
+  .fbs { position: relative; width: 100%; max-width: 420px; height: 100dvh; max-height: 100vh;
+    background: #000; color: #fff; overflow: hidden; }
+  .fbs .media-shell { position: absolute; inset: 0; height: 100%; }
+  .fbs .carousel, .fbs .car-track, .fbs .car-item { height: 100%; }
+  /* single-card progress bar and carousel dots share styling: in a story the
+     dots ARE the top progress segments, so swipe-sync comes from wireCarousels */
+  .fbs-progress, .fbs .car-dots { position: absolute; top: 10px; left: 10px; right: 10px;
+    bottom: auto; display: flex; gap: 4px; justify-content: stretch; z-index: 5; }
+  .fbs-progress .seg, .fbs .car-dots .dot { flex: 1; width: auto; height: 3px; border-radius: 2px;
+    background: rgba(255,255,255,.35); transition: background .2s; }
+  .fbs-progress .seg.active, .fbs .car-dots .dot.active { background: #fff; transform: none; }
+  .fbs .car-counter { display: none; }
+  .fbs-scrim { position: absolute; top: 0; left: 0; right: 0; height: 110px; z-index: 4;
+    background: linear-gradient(rgba(0,0,0,.45), transparent); pointer-events: none; }
+  .fbs-header { position: absolute; top: 22px; left: 0; right: 0; z-index: 5;
+    display: flex; align-items: center; gap: 10px; padding: 0 12px; }
+  .fbs-header .avatar { width: 36px; height: 36px; font-size: 14px; }
+  .fbs-id { flex: 1; min-width: 0; }
+  .fbs-name { font-size: 15px; font-weight: 600; line-height: 1.25;
+    display: flex; align-items: center; gap: 4px; text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+  .fbs-name .verified svg { width: 13px; height: 13px; fill: #fff; }
+  .fbs-sub { font-size: 12px; color: rgba(255,255,255,.85); text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+  .fbs-hdr-icons { display: flex; gap: 18px; }
+  .fbs-hdr-icons svg { width: 20px; height: 20px; fill: #fff;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
+  .fbs-bottom { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 24px 16px 18px; background: linear-gradient(transparent, rgba(0,0,0,.45)); }
+  .fbs-copy { font-size: 14px; line-height: 1.35; text-align: center;
+    text-shadow: 0 1px 2px rgba(0,0,0,.5); overflow-wrap: break-word;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .fbs-chevron svg { width: 20px; height: 20px; fill: #fff;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
+  .fbs-cta { background: #fff; color: #050505; font-size: 15px; font-weight: 600;
+    padding: 10px 28px; border-radius: 22px; }
+  .fbs .mute-btn { bottom: auto; top: 72px; right: 12px; }
 
   /* ============================================================
      TIKTOK in-feed
@@ -273,6 +313,7 @@
    ===================================================================== */
 window.AD_MOCKUP_PARAMS = {
   // platform: "facebook",              // facebook | tiktok | google | youtube | pinterest
+  // placement: "feed",                 // facebook only: feed | story
   // format: "image",                   // video | image | carousel
   // creator: "Jess Reviews",
   // handle: "jessreviews",
@@ -300,10 +341,11 @@ window.AD_MOCKUP_PARAMS = {
 
   /* Bump on any change; keep in sync with the ad-mockup-version meta tag.
      Param changes must be additive-only — Bubble pages depend on this contract. */
-  var VERSION = "1.0.0";
+  var VERSION = "1.1.0";
 
   /* ---------------- defaults ---------------- */
   var COMMON = {
+    placement: "feed",
     format: "image",
     creator: "Creator Name",
     handle: "",
@@ -402,6 +444,7 @@ window.AD_MOCKUP_PARAMS = {
     p.media = p.media ? toMediaList(p.media) : [];
     p.avatar = normalizeUrl(p.avatar);
     p.poster = normalizeUrl(p.poster);
+    p.placement = String(p.placement).toLowerCase().trim() === "story" ? "story" : "feed";
     if (isBlank(p.handle)) p.handle = String(p.creator).toLowerCase().replace(/[^a-z0-9._]/g, "");
     if (isBlank(p.business)) p.business = p.creator;
     p.verified = boolish(p.verified);
@@ -448,6 +491,11 @@ window.AD_MOCKUP_PARAMS = {
     if (sp > n * 0.6) cut = cut.slice(0, sp);
     return { shown: cut, hidden: text.slice(cut.length) };
   }
+  /* hard clamp with a trailing ellipsis — for overlays with no See-more affordance */
+  function ellipsize(text, n) {
+    var t = truncate(text, n);
+    return esc(t.shown) + (t.hidden ? "&hellip;" : "");
+  }
   /* copy with See-more: hidden remainder stored escaped in a data attr */
   function copyHtml(text, limit) {
     var t = truncate(text, limit);
@@ -484,6 +532,7 @@ window.AD_MOCKUP_PARAMS = {
     soundOff: svg("0 0 16 16", "M2 6h2.5L8 3v10L4.5 10H2zm12.7-.9-1.6 1.6 1.6 1.6-1 1-1.6-1.6-1.6 1.6-1-1 1.6-1.6-1.6-1.6 1-1 1.6 1.6 1.6-1.6z"),
     chevR: svg("0 0 16 16", "M5.2 2.5 10.7 8l-5.5 5.5-1.2-1.2L8.3 8 4 3.7z"),
     chevL: svg("0 0 16 16", "M10.8 13.5 5.3 8l5.5-5.5 1.2 1.2L7.7 8l4.3 4.3z"),
+    chevU: svg("0 0 16 16", "M2.5 10.8 8 5.3l5.5 5.5-1.2 1.2L8 7.7l-4.3 4.3z"),
     check: svg("0 0 16 16", "M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm-.9 10L3.9 7.8l1.2-1.2 2 2 3.8-3.8 1.2 1.2z"),
     info: svg("0 0 16 16", "M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm-.8 5.5h1.6V12H7.2zM8 3.5A1 1 0 1 1 8 5.5 1 1 0 0 1 8 3.5z"),
     ext: svg("0 0 16 16", "M9 2h5v5h-1.5V4.6L7 10.1 5.9 9l5.5-5.5H9zM3.5 4H7v1.5H5v5.5h5.5v-2H12V12.5H3.5z"),
@@ -546,6 +595,7 @@ window.AD_MOCKUP_PARAMS = {
 
   /* ---------------- platform renderers ---------------- */
   function renderFacebook(p) {
+    if (p.placement === "story") return renderFacebookStory(p);
     return '<div class="fb">' +
       '<div class="fb-header">' + avatarHtml(p) +
         '<div class="fb-id"><div class="fb-name">' + esc(p.creator) +
@@ -568,6 +618,28 @@ window.AD_MOCKUP_PARAMS = {
         '<button class="fb-action">' + I.thumb + 'Like</button>' +
         '<button class="fb-action">' + I.comment + 'Comment</button>' +
         '<button class="fb-action">' + I.share + 'Share</button></div>' +
+    '</div>';
+  }
+
+  function renderFacebookStory(p) {
+    /* multi-card carousels use the restyled car-dots as progress segments;
+       everything else gets one static full-width segment */
+    var isMultiCard = p.format === "carousel" && p.media.length > 1;
+    var progress = isMultiCard ? "" :
+      '<div class="fbs-progress"><span class="seg active"></span></div>';
+    return '<div class="fbs">' +
+      mediaHtml(p, { dark: true, fill: true }) +
+      '<div class="fbs-scrim"></div>' + progress +
+      '<div class="fbs-header">' + avatarHtml(p) +
+        '<div class="fbs-id"><div class="fbs-name">' + esc(p.creator) +
+          (p.verified ? verifiedBadge : "") + '</div>' +
+        '<div class="fbs-sub">Sponsored</div></div>' +
+        '<div class="fbs-hdr-icons">' + I.dotsV + I.close + '</div></div>' +
+      '<div class="fbs-bottom">' +
+        (isBlank(p.copy) ? "" : '<div class="fbs-copy">' + ellipsize(p.copy, 90) + '</div>') +
+        '<span class="fbs-chevron">' + I.chevU + '</span>' +
+        '<button class="fbs-cta">' + esc(p.cta) + '</button>' +
+      '</div>' +
     '</div>';
   }
 
@@ -714,14 +786,15 @@ window.AD_MOCKUP_PARAMS = {
 
   function render() {
     params = computeParams();
-    document.body.classList.toggle("theme-dark", params.platform === "tiktok");
+    document.body.classList.toggle("theme-dark", params.platform === "tiktok" ||
+      (params.platform === "facebook" && params.placement === "story"));
     root.innerHTML = RENDERERS[params.platform](params);
     wireSeeMore(root);
     wireCarousels(root);
     wireVideos(root, params);
     wireTikTok(root);
     console.info("[ad-mockup] v" + VERSION + " platform=" + params.platform +
-      " format=" + params.format);
+      " placement=" + params.placement + " format=" + params.format);
   }
   render();
 

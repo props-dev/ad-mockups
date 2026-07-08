@@ -10,6 +10,7 @@ control platform, format, creator, ad copy, and media.
 | Platform | Placement rendered |
 |---|---|
 | `facebook` | Mobile feed sponsored post (header, primary text, media, link card + CTA, reactions, action bar) |
+| `facebook` + `placement=story` | Story ad (full-bleed 9:16, segmented progress bar, Sponsored header, swipe-up chevron + CTA pill) — dark theme |
 | `tiktok` | In-feed ad (full-bleed 9:16, action rail, caption + Sponsored label, CTA banner) — dark theme |
 | `google` | Demand Gen / Discover feed card (media, headline, Sponsored source row, CTA chip) |
 | `youtube` | In-feed ad unit (thumbnail + Ad badge, headline, Sponsored · channel row, CTA) |
@@ -40,6 +41,7 @@ Empty values are ignored (safe for Bubble expressions that resolve empty).
 | Param | Values | Default |
 |---|---|---|
 | `platform` | `facebook` \| `tiktok` \| `google` \| `youtube` \| `pinterest` | `facebook` |
+| `placement` | `feed` \| `story` — Facebook only for now; other platforms ignore it | `feed` |
 | `format` | `video` \| `image` \| `carousel` | `image` |
 | `creator` | display name | `Creator Name` |
 | `handle` | handle, no `@` | derived from `creator` |
@@ -67,12 +69,12 @@ defense-in-depth.
 ### Recommended: one reusable element + hosted iframe
 
 Build a single reusable element (e.g. `AdMockup`) with properties — `platform`,
-`format`, `creator`, `avatar`, `copy`, `headline`, `media`, `poster` — containing one
-HTML element:
+`placement`, `format`, `creator`, `avatar`, `copy`, `headline`, `media`, `poster` —
+containing one HTML element:
 
 ```html
 <iframe
-  src="https://props-dev.github.io/ad-mockups/v1/ad-mockup.html?platform=<platform>&format=<format>&creator=<creator:URL encode>&copy=<copy:URL encode>&media=<media:URL encode>&poster=<poster:URL encode>"
+  src="https://props-dev.github.io/ad-mockups/v1/ad-mockup.html?platform=<platform>&placement=<placement>&format=<format>&creator=<creator:URL encode>&copy=<copy:URL encode>&media=<media:URL encode>&poster=<poster:URL encode>"
   style="width:100%;height:100%;border:0" loading="lazy"></iframe>
 ```
 
@@ -82,7 +84,9 @@ pages, repeating-group cells) and feed the properties from the data.
 
 **Platform mapping belongs in the data layer:** add a `mockup_slug` attribute to the
 Platform option set (`Facebook Ads` → `facebook`, etc.) and reference it, instead of
-scattering `:formatted as text` conditionals across pages.
+scattering `:formatted as text` conditionals across pages. Do the same for placement
+(`Feed` → `feed`, `Stories` → `story`); the renderer ignores `placement` on platforms
+that don't have a story variant, so it's always safe to pass.
 
 Caveats:
 - Keep the total URL under **~2,000 characters** (Bubble's recommendation). Long copy +
@@ -130,6 +134,7 @@ resize for auto-sizing embeds.
 | Platform | Size (px) | Notes |
 |---|---|---|
 | `facebook` | 375 × 660 | 1:1 media; ~740 tall for `ratio=4:5` |
+| `facebook` story | 375 × 667 | Fills whatever height you give it (9:16 look) |
 | `tiktok` | 375 × 667 | Fills whatever height you give it (9:16 look) |
 | `google` | 375 × 440 | Shorter without `description` |
 | `youtube` | 375 × 420 | |

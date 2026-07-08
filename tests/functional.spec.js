@@ -129,6 +129,45 @@ test.describe("platform renderers", () => {
     expect(await page.locator(".fb-copy .js-see-more").count()).toBe(0);
   });
 
+  test("facebook story: full-bleed story with progress bar, Sponsored header, CTA pill", async ({ page }) => {
+    await page.goto(PAGE + "?placement=story&creator=Jess%20Rivera");
+    await expect(page.locator(".fbs")).toBeVisible();
+    await expect(page.locator("body")).toHaveClass(/theme-dark/);
+    await expect(page.locator(".fbs-progress .seg")).toHaveCount(1);
+    await expect(page.locator(".fbs-name")).toContainText("Jess Rivera");
+    await expect(page.locator(".fbs-sub")).toHaveText("Sponsored");
+    await expect(page.locator(".fbs-cta")).toHaveText("Learn More");
+    // feed chrome must not leak into the story
+    expect(await page.locator(".fb-linkcard").count()).toBe(0);
+  });
+
+  test("facebook story: overlaid copy hard-clamps with an ellipsis (no See more)", async ({ page }) => {
+    await page.goto(PAGE + "?placement=story&copy=" + encodeURIComponent(LONG_COPY));
+    await expect(page.locator(".fbs-copy")).toContainText("…");
+    expect(await page.locator(".fbs-copy").innerText()).not.toContain("worth the money");
+    expect(await page.locator(".fbs-copy .js-see-more").count()).toBe(0);
+    // short copy gets no ellipsis
+    await page.goto(PAGE + "?placement=story&copy=Short%20copy");
+    expect(await page.locator(".fbs-copy").innerText()).toBe("Short copy");
+  });
+
+  test("facebook story carousel: dots become progress segments and sync on advance", async ({ page }) => {
+    await page.goto(PAGE + "?placement=story&format=carousel" +
+      "&media=" + encodeURIComponent(PX_RED) +
+      "&media=" + encodeURIComponent(PX_BLUE));
+    await expect(page.locator(".fbs .car-dots .dot")).toHaveCount(2);
+    // the numeric counter is hidden in story mode (progress bar replaces it)
+    await expect(page.locator(".fbs .car-counter")).toBeHidden();
+    await page.locator(".js-car-next").click();
+    await expect(page.locator(".fbs .car-dots .dot").nth(1)).toHaveClass(/active/);
+  });
+
+  test("placement defaults to feed and unknown values fall back to feed", async ({ page }) => {
+    await page.goto(PAGE + "?placement=reels");
+    await expect(page.locator(".fb")).toBeVisible();
+    expect(await page.locator(".fbs").count()).toBe(0);
+  });
+
   test("tiktok: dark theme, derived @handle, sponsored label, CTA banner", async ({ page }) => {
     await page.goto(PAGE + "?platform=tiktok&creator=" + encodeURIComponent("Jess Rivera"));
     await expect(page.locator("body")).toHaveClass(/theme-dark/);
