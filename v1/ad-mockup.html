@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Defense-in-depth: params are attacker-influenced once preview links are shared.
+     Text is HTML-escaped in JS; this CSP additionally blocks any external script/
+     object/fetch even if an escaping bug slipped through. script-src must stay
+     'unsafe-inline' because the whole app is the inline script below. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src https: data:; media-src https:; base-uri 'none'; form-action 'none'">
+<meta name="ad-mockup-version" content="1.0.0">
+<title>Ad Preview</title>
+<style>
+  /* ============ base ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: transparent;
+    -webkit-font-smoothing: antialiased;
+    display: flex; align-items: flex-start; justify-content: center;
+  }
+  body.theme-dark { background: #000; }
+  img, video { display: block; max-width: 100%; }
+  button { font: inherit; border: 0; background: none; cursor: pointer; }
+  svg { display: block; }
+  #root { width: 100%; display: flex; justify-content: center; }
+
+  /* ============ shared: avatar / placeholder / see-more ============ */
+  .avatar { border-radius: 50%; overflow: hidden; position: relative; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+  .see-more { color: #65676b; cursor: pointer; font-weight: 500; }
+  .theme-dark .see-more, .tt .see-more { color: rgba(255,255,255,.75); }
+
+  .ph { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 8px;
+    align-items: center; justify-content: center;
+    background: linear-gradient(160deg, #e9ebee 0%, #d8dbe0 100%); color: #9aa0a8; }
+  .ph.dark { background: linear-gradient(160deg, #2b2b31 0%, #141417 100%); color: #55555e; }
+  .ph .ph-label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; }
+
+  /* media shells: placeholder sits behind, real media covers it */
+  .media-shell { position: relative; overflow: hidden; background: #000; width: 100%; }
+  .media-shell > img.media-el, .media-shell > video.media-el {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .media-shell.contain > video.media-el { object-fit: contain; }
+
+  /* ============ shared: video controls ============ */
+  .mute-btn { position: absolute; right: 10px; bottom: 10px; width: 30px; height: 30px;
+    border-radius: 50%; background: rgba(0,0,0,.55); display: flex; align-items: center;
+    justify-content: center; z-index: 3; }
+  .mute-btn svg { width: 15px; height: 15px; fill: #fff; }
+  .play-overlay { position: absolute; inset: 0; display: none; align-items: center;
+    justify-content: center; z-index: 2; background: rgba(0,0,0,.15); }
+  .play-overlay.visible { display: flex; }
+  .play-overlay .play-btn { width: 56px; height: 56px; border-radius: 50%;
+    background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; }
+  .play-overlay svg { width: 22px; height: 22px; fill: #fff; margin-left: 3px; }
+
+  /* ============ shared: carousel ============ */
+  .carousel { position: relative; width: 100%; }
+  .car-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
+    scrollbar-width: none; -ms-overflow-style: none; }
+  .car-track::-webkit-scrollbar { display: none; }
+  .car-item { flex: 0 0 100%; scroll-snap-align: start; position: relative; overflow: hidden; }
+  .car-item img.media-el { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .car-counter { position: absolute; top: 10px; right: 10px; z-index: 3; background: rgba(0,0,0,.55);
+    color: #fff; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 12px; }
+  .car-dots { position: absolute; bottom: 10px; left: 0; right: 0; display: flex; gap: 5px;
+    justify-content: center; z-index: 3; }
+  .car-dots .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.5);
+    transition: background .2s, transform .2s; }
+  .car-dots .dot.active { background: #fff; transform: scale(1.15); }
+  .car-arrow { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
+    width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,.9);
+    box-shadow: 0 1px 4px rgba(0,0,0,.3); display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity .15s; }
+  .car-arrow svg { width: 14px; height: 14px; fill: #444; }
+  .car-arrow.prev { left: 8px; }
+  .car-arrow.next { right: 8px; }
+  .carousel:hover .car-arrow { opacity: 1; }
+  @media (hover: none) { .car-arrow { display: none; } }
+
+  /* broken media → reveal placeholder behind */
+  .media-el.broken { display: none !important; }
+
+  /* ============================================================
+     FACEBOOK mobile feed
+     ============================================================ */
+  .fb { width: 100%; max-width: 400px; background: #fff; color: #050505;
+    border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.15); overflow: hidden; margin: 8px; }
+  .fb-header { display: flex; align-items: center; gap: 8px; padding: 12px 12px 0 12px; }
+  .fb-header .avatar { width: 40px; height: 40px; font-size: 16px; }
+  .fb-id { flex: 1; min-width: 0; }
+  .fb-name { font-size: 15px; font-weight: 600; line-height: 1.25;
+    display: flex; align-items: center; gap: 4px; }
+  .fb-sub { font-size: 13px; color: #65676b; display: flex; align-items: center; gap: 4px; }
+  .fb-sub svg { width: 12px; height: 12px; fill: #65676b; }
+  .fb-hdr-icons { display: flex; gap: 14px; color: #65676b; }
+  .fb-hdr-icons svg { width: 18px; height: 18px; fill: #65676b; }
+  .fb-copy { padding: 8px 12px 10px 12px; font-size: 15px; line-height: 1.35;
+    white-space: pre-line; overflow-wrap: break-word; }
+  .fb-linkcard { display: flex; align-items: center; gap: 10px; background: #f0f2f5;
+    padding: 10px 12px; }
+  .fb-linkcard-text { flex: 1; min-width: 0; }
+  .fb-domain { font-size: 13px; color: #65676b; text-transform: uppercase; letter-spacing: .01em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fb-headline { font-size: 15px; font-weight: 600; line-height: 1.25; margin-top: 1px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .fb-desc { font-size: 13px; color: #65676b; margin-top: 1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fb-cta { flex-shrink: 0; background: #e4e6eb; color: #050505; font-size: 15px; font-weight: 600;
+    padding: 8px 14px; border-radius: 6px; white-space: nowrap; }
+  .fb-counts { display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; font-size: 15px; color: #65676b; }
+  .fb-rxns { display: flex; align-items: center; gap: 6px; }
+  .fb-rxn-stack { display: flex; }
+  .fb-rxn { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #fff;
+    display: flex; align-items: center; justify-content: center; }
+  .fb-rxn + .fb-rxn { margin-left: -6px; }
+  .fb-rxn.like { background: #1877f2; z-index: 2; }
+  .fb-rxn.love { background: #f33e58; }
+  .fb-rxn svg { width: 9px; height: 9px; fill: #fff; }
+  .fb-actions { display: flex; border-top: 1px solid #e4e6eb; margin: 0 12px; }
+  .fb-action { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 0; font-size: 13px; font-weight: 600; color: #65676b; }
+  .fb-action svg { width: 18px; height: 18px; fill: #65676b; }
+  .fb .verified svg { width: 13px; height: 13px; fill: #1877f2; }
+
+  /* ============================================================
+     TIKTOK in-feed
+     ============================================================ */
+  .tt { position: relative; width: 100%; max-width: 420px; height: 100dvh; max-height: 100vh;
+    background: #000; color: #fff; overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .tt .media-shell { position: absolute; inset: 0; height: 100%; }
+  .tt .carousel, .tt .car-track, .tt .car-item { height: 100%; }
+  .tt-topnav { position: absolute; top: 0; left: 0; right: 0; z-index: 4;
+    display: flex; align-items: center; justify-content: center; gap: 18px;
+    padding: 14px 16px 10px; font-size: 16px;
+    background: linear-gradient(rgba(0,0,0,.35), transparent); }
+  .tt-tab { color: rgba(255,255,255,.65); font-weight: 600; }
+  .tt-tab.active { color: #fff; position: relative; }
+  .tt-tab.active::after { content: ""; position: absolute; left: 25%; right: 25%; bottom: -6px;
+    height: 3px; background: #fff; border-radius: 2px; }
+  .tt-search { position: absolute; right: 14px; top: 13px; }
+  .tt-search svg { width: 20px; height: 20px; fill: #fff; }
+  .tt-live { position: absolute; left: 14px; top: 13px; font-size: 15px; font-weight: 600;
+    color: rgba(255,255,255,.85); }
+  /* right action rail */
+  .tt-rail { position: absolute; right: 8px; bottom: 120px; z-index: 4;
+    display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  .tt-rail-avatar { position: relative; margin-bottom: 4px; }
+  .tt-rail-avatar .avatar { width: 46px; height: 46px; border: 1.5px solid #fff; font-size: 18px; }
+  .tt-follow { position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%);
+    width: 19px; height: 19px; border-radius: 50%; background: #fe2c55;
+    display: flex; align-items: center; justify-content: center; }
+  .tt-follow svg { width: 9px; height: 9px; fill: #fff; }
+  .tt-rail-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .tt-rail-item svg { width: 30px; height: 30px; fill: #fff;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
+  .tt-rail-count { font-size: 12px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+  .tt-disc { width: 38px; height: 38px; border-radius: 50%; margin-top: 2px;
+    background: radial-gradient(circle at center, #333 34%, #111 40%, #2c2c2c 58%, #111 78%);
+    display: flex; align-items: center; justify-content: center;
+    animation: tt-spin 6s linear infinite; }
+  .tt-disc .avatar { width: 20px; height: 20px; font-size: 8px; }
+  @keyframes tt-spin { to { transform: rotate(360deg); } }
+  /* bottom-left stack */
+  .tt-bottom { position: absolute; left: 0; right: 64px; bottom: 0; z-index: 4;
+    padding: 0 14px 14px; background: linear-gradient(transparent, rgba(0,0,0,.45)); }
+  .tt-handle { font-size: 17px; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,.5);
+    display: flex; align-items: center; gap: 5px; }
+  .tt-handle .verified svg { width: 14px; height: 14px; fill: #20d5ec; }
+  .tt-caption { font-size: 15px; line-height: 1.35; margin-top: 5px;
+    text-shadow: 0 1px 2px rgba(0,0,0,.5); overflow-wrap: break-word; }
+  .tt-sponsored { display: inline-flex; align-items: center; gap: 4px; margin-top: 7px;
+    font-size: 12px; font-weight: 500; color: rgba(255,255,255,.75); }
+  .tt-sponsored svg { width: 11px; height: 11px; fill: rgba(255,255,255,.75); }
+  .tt-music { display: flex; align-items: center; gap: 6px; margin-top: 7px; font-size: 14px;
+    text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+  .tt-music svg { width: 13px; height: 13px; fill: #fff; flex-shrink: 0; }
+  .tt-music span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tt-cta { display: flex; align-items: center; justify-content: space-between; margin-top: 12px;
+    width: 100%; padding: 11px 14px; border-radius: 8px; font-size: 15px; font-weight: 600;
+    color: #fff; background: rgba(255,255,255,.22); transition: background .5s; }
+  .tt-cta.hot { background: #fe2c55; }
+  .tt-cta svg { width: 14px; height: 14px; fill: #fff; }
+  .tt .car-dots { bottom: auto; top: 46px; }
+  .tt .car-counter { top: 46px; }
+  .tt .mute-btn { bottom: auto; top: 52px; right: 12px; }
+
+  /* ============================================================
+     GOOGLE Demand Gen / Discover card
+     ============================================================ */
+  .gg { width: 100%; max-width: 400px; margin: 8px; background: #fff; color: #202124;
+    border: 1px solid #dadce0; border-radius: 16px; overflow: hidden;
+    font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
+  .gg-body { padding: 12px 16px 14px; }
+  .gg-headline { font-size: 18px; font-weight: 500; line-height: 1.3; letter-spacing: 0;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .gg-source { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .gg-source .avatar { width: 22px; height: 22px; font-size: 9px; }
+  .gg-source-name { font-size: 13px; color: #5f6368;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gg-source-dot { color: #5f6368; font-size: 13px; }
+  .gg-sponsored { font-size: 13px; color: #5f6368; white-space: nowrap; }
+  .gg-menu { margin-left: auto; }
+  .gg-menu svg { width: 18px; height: 18px; fill: #5f6368; }
+  .gg-desc { font-size: 14px; color: #5f6368; line-height: 1.4; margin-top: 8px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .gg-cta { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px;
+    padding: 7px 16px; border: 1px solid #dadce0; border-radius: 18px;
+    color: #1a73e8; font-size: 14px; font-weight: 500; }
+  .gg-cta svg { width: 13px; height: 13px; fill: #1a73e8; }
+
+  /* ============================================================
+     PINTEREST promoted pin
+     ============================================================ */
+  .pin { width: 100%; max-width: 400px; margin: 8px; background: #fff; color: #111;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .pin .media-shell { border-radius: 16px; }
+  .pin .carousel .car-item { border-radius: 16px; }
+  .pin .car-counter { right: auto; left: 10px; }
+  .pin-save { position: absolute; top: 12px; right: 12px; z-index: 3; background: #e60023;
+    color: #fff; font-weight: 700; font-size: 15px; padding: 10px 18px; border-radius: 24px; }
+  .pin-title { font-size: 15px; font-weight: 600; line-height: 1.3; margin-top: 10px; padding: 0 4px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .pin-promoted { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 0 4px; }
+  .pin-promoted .avatar { width: 24px; height: 24px; font-size: 10px; }
+  .pin-promoted-text { flex: 1; min-width: 0; font-size: 13px; color: #5f5f5f;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pin-menu svg { width: 18px; height: 18px; fill: #5f5f5f; }
+
+  /* ============================================================
+     YOUTUBE in-feed
+     ============================================================ */
+  .yt { width: 100%; max-width: 400px; margin: 8px; background: #fff; color: #0f0f0f;
+    font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
+  .yt .media-shell { border-radius: 12px; }
+  .yt-ad-badge { position: absolute; left: 8px; bottom: 8px; z-index: 3;
+    background: rgba(0,0,0,.8); color: #fff; font-size: 11px; font-weight: 500;
+    padding: 2px 6px; border-radius: 4px; letter-spacing: .03em; }
+  .yt-duration { position: absolute; right: 8px; bottom: 8px; z-index: 3;
+    background: rgba(0,0,0,.8); color: #fff; font-size: 12px; font-weight: 500;
+    padding: 2px 5px; border-radius: 4px; }
+  .yt-meta { display: flex; gap: 12px; padding: 10px 4px 0; }
+  .yt-meta .avatar { width: 36px; height: 36px; font-size: 14px; }
+  .yt-meta-text { flex: 1; min-width: 0; }
+  .yt-headline { font-size: 15px; font-weight: 500; line-height: 1.35;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .yt-sub { font-size: 13px; color: #606060; margin-top: 3px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .yt-menu svg { width: 18px; height: 18px; fill: #606060; }
+  .yt-desc { font-size: 13px; color: #606060; line-height: 1.4; padding: 6px 4px 0;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .yt-cta { display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin: 12px 4px 4px; padding: 9px 0; width: calc(100% - 8px);
+    background: #e6f0fd; color: #0b57d0; border-radius: 20px; font-size: 14px; font-weight: 500; }
+  .yt-cta svg { width: 14px; height: 14px; fill: #0b57d0; }
+</style>
+</head>
+<body>
+
+<script>
+/* =====================================================================
+   BUBBLE PASTE-IN CONFIG
+   When pasting this file into a Bubble HTML element ("Display as an
+   iFrame" ticked), set params here. Bubble dynamic data goes in with
+   ":formatted as JSON-safe" (it outputs a quoted, escaped string —
+   do NOT add your own quotes around those).
+   URL query-string params override anything set here.
+   ===================================================================== */
+window.AD_MOCKUP_PARAMS = {
+  // platform: "facebook",              // facebook | tiktok | google | youtube | pinterest
+  // format: "image",                   // video | image | carousel
+  // creator: "Jess Reviews",
+  // handle: "jessreviews",
+  // avatar: "https://cdn.bubble.io/....png",
+  // copy: "Primary text / caption",    // Bubble: copy: Episode's Ad Copy:formatted as JSON-safe,
+  // headline: "Headline",
+  // description: "Description line",
+  // cta: "Shop now",
+  // domain: "props.co",
+  // business: "Brand Name",            // Google business name / YouTube channel
+  // media: "url1|url2|url3",           // pipe-separated for carousel (never commas)
+  // poster: "https://.../thumb.jpg",   // video thumbnail
+  // likes: "1.2K", comments: "84", shares: "23", views: "12K",
+  // verified: "1",                     // blue check (facebook / tiktok)
+  // autoplay: "1",                     // 0 = show tap-to-play overlay instead
+  // ratio: "1:1",                      // media aspect, e.g. 1:1, 4:5, 1.91:1, 16:9
+};
+</script>
+
+<div id="root"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* Bump on any change; keep in sync with the ad-mockup-version meta tag.
+     Param changes must be additive-only — Bubble pages depend on this contract. */
+  var VERSION = "1.0.0";
+
+  /* ---------------- defaults ---------------- */
+  var COMMON = {
+    format: "image",
+    creator: "Creator Name",
+    handle: "",
+    avatar: "",
+    copy: "",
+    headline: "See why everyone is talking about this",
+    description: "",
+    cta: "",
+    domain: "props.co",
+    business: "",
+    media: [],
+    poster: "",
+    likes: "1.2K",
+    comments: "84",
+    shares: "23",
+    views: "12K",
+    verified: "0",
+    autoplay: "1",
+    ratio: ""
+  };
+  var PLATFORM_DEFAULTS = {
+    facebook: {
+      cta: "Learn More", ratio: "1:1",
+      copy: "I was skeptical at first, but after 30 days of using this every single day I genuinely can't go back. Here's exactly what changed for me — full breakdown below 👇"
+    },
+    tiktok: {
+      cta: "Shop now", ratio: "9:16",
+      copy: "no because why did nobody tell me about this sooner 😭 #ad"
+    },
+    google: {
+      cta: "Shop now", ratio: "1.91:1",
+      copy: ""
+    },
+    youtube: {
+      cta: "Visit site", ratio: "16:9", autoplay: "0",
+      copy: "", description: "Watch the full review before you buy."
+    },
+    pinterest: {
+      cta: "Save", ratio: "2:3",
+      copy: ""
+    }
+  };
+
+  /* ---------------- param engine ---------------- */
+  function isBlank(v) {
+    return v === undefined || v === null || (typeof v === "string" && v.trim() === "");
+  }
+  function normalizeUrl(u) {
+    if (isBlank(u)) return "";
+    u = String(u).trim();
+    if (u.indexOf("//") === 0) u = "https:" + u;
+    /* https/data-image only — matches the CSP, and http would be blocked as
+       mixed content inside the https Bubble embed anyway */
+    if (!/^(https:|data:image\/)/i.test(u)) return "";
+    return u;
+  }
+  function toMediaList(v) {
+    var arr = Array.isArray(v) ? v : String(v).split("|");
+    var out = [];
+    for (var i = 0; i < arr.length; i++) {
+      var u = normalizeUrl(arr[i]);
+      if (u) out.push(u);
+    }
+    return out;
+  }
+  function readQuery() {
+    var q = {}, sp = new URLSearchParams(location.search);
+    sp.forEach(function (val, key) {
+      if (key === "media") return; // handled below (repeatable)
+      if (!isBlank(val)) q[key] = val;
+    });
+    var media = [];
+    sp.getAll("media").forEach(function (v) {
+      media = media.concat(toMediaList(v));
+    });
+    if (media.length) q.media = media;
+    return q;
+  }
+  function computeParams() {
+    var inline = window.AD_MOCKUP_PARAMS || {};
+    var query = readQuery();
+    var platform = query.platform || inline.platform || "facebook";
+    platform = String(platform).toLowerCase().trim();
+    if (!PLATFORM_DEFAULTS[platform]) platform = "facebook";
+
+    var p = {};
+    var layers = [COMMON, PLATFORM_DEFAULTS[platform], inline, query];
+    layers.forEach(function (layer) {
+      for (var k in layer) {
+        if (!Object.prototype.hasOwnProperty.call(layer, k)) continue;
+        if (isBlank(layer[k]) || (Array.isArray(layer[k]) && !layer[k].length)) continue;
+        p[k] = layer[k];
+      }
+    });
+    p.platform = platform;
+    p.media = p.media ? toMediaList(p.media) : [];
+    p.avatar = normalizeUrl(p.avatar);
+    p.poster = normalizeUrl(p.poster);
+    if (isBlank(p.handle)) p.handle = String(p.creator).toLowerCase().replace(/[^a-z0-9._]/g, "");
+    if (isBlank(p.business)) p.business = p.creator;
+    p.verified = boolish(p.verified);
+    p.autoplay = boolish(p.autoplay);
+    return p;
+  }
+  function boolish(v) {
+    v = String(v).toLowerCase().trim();
+    return !(v === "0" || v === "false" || v === "no" || v === "");
+  }
+
+  /* ---------------- helpers ---------------- */
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+  function cssRatio(r) {
+    var m = /^([\d.]+)\s*[:/]\s*([\d.]+)$/.exec(String(r).trim());
+    return m ? m[1] + " / " + m[2] : "1 / 1";
+  }
+  var AVATAR_COLORS = ["#5B6DCD", "#D65C8B", "#3E8E7E", "#C97B3D", "#7B5BC7", "#2E86AB"];
+  function avatarColor(name) {
+    var h = 0, s = String(name);
+    for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return AVATAR_COLORS[h % AVATAR_COLORS.length];
+  }
+  function initials(name) {
+    var parts = String(name).trim().split(/\s+/).slice(0, 2);
+    return parts.map(function (w) { return w.charAt(0).toUpperCase(); }).join("") || "?";
+  }
+  function avatarHtml(p) {
+    var img = p.avatar
+      ? '<img src="' + esc(p.avatar) + '" alt="" onerror="this.classList.add(\'broken\')">'
+      : "";
+    return '<span class="avatar" style="background:' + avatarColor(p.creator) + '">' +
+      '<span>' + esc(initials(p.creator)) + '</span>' + img + '</span>';
+  }
+  function truncate(text, n) {
+    text = String(text);
+    if (text.length <= n) return { shown: text, hidden: "" };
+    var cut = text.slice(0, n);
+    var sp = cut.lastIndexOf(" ");
+    if (sp > n * 0.6) cut = cut.slice(0, sp);
+    return { shown: cut, hidden: text.slice(cut.length) };
+  }
+  /* copy with See-more: hidden remainder stored escaped in a data attr */
+  function copyHtml(text, limit) {
+    var t = truncate(text, limit);
+    if (!t.hidden) return esc(t.shown);
+    return esc(t.shown) +
+      '<span class="js-hidden" hidden>' + esc(t.hidden) + '</span>' +
+      '<span class="see-more js-see-more">&hellip; See more</span>';
+  }
+  function placeholder(dark, label) {
+    return '<span class="ph' + (dark ? " dark" : "") + '">' + I.image +
+      '<span class="ph-label">' + esc(label || "Creative") + '</span></span>';
+  }
+
+  /* ---------------- inline SVG icons ---------------- */
+  function svg(vb, path, cls) {
+    return '<svg viewBox="' + vb + '"' + (cls ? ' class="' + cls + '"' : "") +
+      ' aria-hidden="true"><path d="' + path + '"/></svg>';
+  }
+  var I = {
+    globe: svg("0 0 16 16", "M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm5.48 6.25h-2.51a11.7 11.7 0 0 0-.79-3.65 5.53 5.53 0 0 1 3.3 3.65zM8 2.5c.57 0 1.62 1.63 1.94 4.75H6.06C6.38 4.13 7.43 2.5 8 2.5zM5.82 3.6a11.7 11.7 0 0 0-.79 3.65H2.52a5.53 5.53 0 0 1 3.3-3.65zM2.52 8.75h2.51c.08 1.32.36 2.58.79 3.65a5.53 5.53 0 0 1-3.3-3.65zM8 13.5c-.57 0-1.62-1.63-1.94-4.75h3.88C9.62 11.87 8.57 13.5 8 13.5zm2.18-1.1c.43-1.07.71-2.33.79-3.65h2.51a5.53 5.53 0 0 1-3.3 3.65z"),
+    dots: svg("0 0 16 16", "M3 6.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm5 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm5 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"),
+    dotsV: svg("0 0 16 16", "M8 1.5A1.5 1.5 0 1 1 8 4.5 1.5 1.5 0 0 1 8 1.5zm0 5A1.5 1.5 0 1 1 8 9.5 1.5 1.5 0 0 1 8 6.5zm0 5A1.5 1.5 0 1 1 8 14.5 1.5 1.5 0 0 1 8 11.5z"),
+    close: svg("0 0 16 16", "M3.28 2.22 8 6.94l4.72-4.72 1.06 1.06L9.06 8l4.72 4.72-1.06 1.06L8 9.06l-4.72 4.72-1.06-1.06L6.94 8 2.22 3.28z"),
+    thumb: svg("0 0 16 16", "M1.5 7H4v7.5H1.5zM5 14.5h6.36a2 2 0 0 0 1.94-1.51l1.13-4.5A1.6 1.6 0 0 0 12.88 6.5H9.5V3.4A1.9 1.9 0 0 0 7.6 1.5L5 7z"),
+    heart: svg("0 0 16 16", "M8 14.2S1.5 10.4 1.5 5.9A3.4 3.4 0 0 1 8 4.5a3.4 3.4 0 0 1 6.5 1.4c0 4.5-6.5 8.3-6.5 8.3z"),
+    comment: svg("0 0 16 16", "M8 1.5c3.9 0 7 2.6 7 5.8s-3.1 5.8-7 5.8c-.7 0-1.4-.1-2-.3L2.5 14l.8-2.8C2.1 10.2 1 8.9 1 7.3 1 4.1 4.1 1.5 8 1.5z"),
+    share: svg("0 0 16 16", "M9.5 3.5 15 8l-5.5 4.5V9.6C5.4 9.6 3 11 1.5 13.4c0-4.2 2.6-7.3 8-7.6z"),
+    bookmark: svg("0 0 16 16", "M3.5 1.5h9v13.2L8 11.4l-4.5 3.3z"),
+    plus: svg("0 0 16 16", "M7 2h2v5h5v2H9v5H7V9H2V7h5z"),
+    search: svg("0 0 16 16", "M11.7 10.3a6 6 0 1 0-1.4 1.4l3 3 1.4-1.4zM7 11.5A4.5 4.5 0 1 1 7 2.5a4.5 4.5 0 0 1 0 9z"),
+    note: svg("0 0 16 16", "M6 2.5 13.5 1v9.6a2.4 2.4 0 1 1-1.5-2.2V4.3L7.5 5.2v7.4A2.4 2.4 0 1 1 6 10.4z"),
+    play: svg("0 0 16 16", "M4 2.5 13.5 8 4 13.5z"),
+    soundOn: svg("0 0 16 16", "M2 6h2.5L8 3v10L4.5 10H2zm8.2-1.2a4 4 0 0 1 0 6.4l-.9-1.2a2.5 2.5 0 0 0 0-4zm1.7-2a7 7 0 0 1 0 10.4l-.9-1.2a5.5 5.5 0 0 0 0-8z"),
+    soundOff: svg("0 0 16 16", "M2 6h2.5L8 3v10L4.5 10H2zm12.7-.9-1.6 1.6 1.6 1.6-1 1-1.6-1.6-1.6 1.6-1-1 1.6-1.6-1.6-1.6 1-1 1.6 1.6 1.6-1.6z"),
+    chevR: svg("0 0 16 16", "M5.2 2.5 10.7 8l-5.5 5.5-1.2-1.2L8.3 8 4 3.7z"),
+    chevL: svg("0 0 16 16", "M10.8 13.5 5.3 8l5.5-5.5 1.2 1.2L7.7 8l4.3 4.3z"),
+    check: svg("0 0 16 16", "M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm-.9 10L3.9 7.8l1.2-1.2 2 2 3.8-3.8 1.2 1.2z"),
+    info: svg("0 0 16 16", "M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm-.8 5.5h1.6V12H7.2zM8 3.5A1 1 0 1 1 8 5.5 1 1 0 0 1 8 3.5z"),
+    ext: svg("0 0 16 16", "M9 2h5v5h-1.5V4.6L7 10.1 5.9 9l5.5-5.5H9zM3.5 4H7v1.5H5v5.5h5.5v-2H12V12.5H3.5z"),
+    image: '<svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9.5" r="1.6"/><path d="m3 17 5-4.5 4 3.5 3.5-3 5.5 4"/></svg>'
+  };
+  var verifiedBadge = '<span class="verified">' + I.check + '</span>';
+
+  /* ---------------- media factory ---------------- */
+  function mediaHtml(p, opts) {
+    opts = opts || {};
+    var dark = !!opts.dark;
+    var ratioStyle = opts.fill ? "" : ' style="aspect-ratio:' + cssRatio(p.ratio) + '"';
+    if (p.format === "video") {
+      var src = p.media[0] || "";
+      var posterImg = p.poster
+        ? '<img class="media-el" src="' + esc(p.poster) + '" alt=""' +
+          ' onerror="this.classList.add(\'broken\')">'
+        : "";
+      var inner;
+      if (src) {
+        /* poster img sits behind the video so it still shows if the video
+           fails to load or while it buffers */
+        inner = posterImg + '<video class="media-el js-video" src="' + esc(src) + '"' +
+          (p.poster ? ' poster="' + esc(p.poster) + '"' : "") +
+          ' muted playsinline loop preload="metadata"' +
+          ' onerror="this.classList.add(\'broken\')"></video>' +
+          '<div class="play-overlay js-play-overlay"><span class="play-btn">' + I.play + '</span></div>' +
+          '<button class="mute-btn js-mute" aria-label="Toggle sound">' + I.soundOff + '</button>';
+      } else if (p.poster) {
+        inner = posterImg +
+          '<div class="play-overlay visible"><span class="play-btn">' + I.play + '</span></div>';
+      } else {
+        inner = '<div class="play-overlay visible"><span class="play-btn">' + I.play + '</span></div>';
+      }
+      return '<div class="media-shell"' + ratioStyle + '>' + placeholder(dark, "Video") + inner + '</div>';
+    }
+    if (p.format === "carousel" && p.media.length > 1) {
+      var items = p.media.map(function (u) {
+        return '<div class="car-item"' + ratioStyle + '>' + placeholder(dark) +
+          '<img class="media-el" src="' + esc(u) + '" alt=""' +
+          ' onerror="this.classList.add(\'broken\')"></div>';
+      }).join("");
+      var dots = p.media.map(function (_, i) {
+        return '<span class="dot' + (i === 0 ? " active" : "") + '"></span>';
+      }).join("");
+      return '<div class="carousel js-carousel">' +
+        '<div class="car-track js-car-track">' + items + '</div>' +
+        '<span class="car-counter js-car-counter">1/' + p.media.length + '</span>' +
+        '<button class="car-arrow prev js-car-prev" aria-label="Previous">' + I.chevL + '</button>' +
+        '<button class="car-arrow next js-car-next" aria-label="Next">' + I.chevR + '</button>' +
+        '<div class="car-dots js-car-dots">' + dots + '</div></div>';
+    }
+    /* single image (also carousel that degraded to one item) */
+    var img = p.media[0]
+      ? '<img class="media-el" src="' + esc(p.media[0]) + '" alt=""' +
+        ' onerror="this.classList.add(\'broken\')">'
+      : "";
+    return '<div class="media-shell"' + ratioStyle + '>' + placeholder(dark) + img + '</div>';
+  }
+
+  /* ---------------- platform renderers ---------------- */
+  function renderFacebook(p) {
+    return '<div class="fb">' +
+      '<div class="fb-header">' + avatarHtml(p) +
+        '<div class="fb-id"><div class="fb-name">' + esc(p.creator) +
+          (p.verified ? verifiedBadge : "") + '</div>' +
+        '<div class="fb-sub">Sponsored &middot; ' + I.globe + '</div></div>' +
+        '<div class="fb-hdr-icons">' + I.dots + I.close + '</div></div>' +
+      '<div class="fb-copy">' + copyHtml(p.copy, 125) + '</div>' +
+      mediaHtml(p) +
+      '<div class="fb-linkcard"><div class="fb-linkcard-text">' +
+        '<div class="fb-domain">' + esc(p.domain) + '</div>' +
+        '<div class="fb-headline">' + esc(p.headline) + '</div>' +
+        (isBlank(p.description) ? "" : '<div class="fb-desc">' + esc(p.description) + '</div>') +
+      '</div><button class="fb-cta">' + esc(p.cta) + '</button></div>' +
+      '<div class="fb-counts"><div class="fb-rxns"><span class="fb-rxn-stack">' +
+        '<span class="fb-rxn like">' + I.thumb + '</span>' +
+        '<span class="fb-rxn love">' + I.heart + '</span></span>' +
+        '<span>' + esc(p.likes) + '</span></div>' +
+        '<div>' + esc(p.comments) + ' comments &middot; ' + esc(p.shares) + ' shares</div></div>' +
+      '<div class="fb-actions">' +
+        '<button class="fb-action">' + I.thumb + 'Like</button>' +
+        '<button class="fb-action">' + I.comment + 'Comment</button>' +
+        '<button class="fb-action">' + I.share + 'Share</button></div>' +
+    '</div>';
+  }
+
+  function renderTikTok(p) {
+    return '<div class="tt">' +
+      mediaHtml(p, { dark: true, fill: true }) +
+      '<div class="tt-topnav"><span class="tt-live">LIVE</span>' +
+        '<span class="tt-tab">Following</span><span class="tt-tab active">For You</span>' +
+        '<span class="tt-search">' + I.search + '</span></div>' +
+      '<div class="tt-rail">' +
+        '<div class="tt-rail-avatar">' + avatarHtml(p) +
+          '<span class="tt-follow">' + I.plus + '</span></div>' +
+        '<div class="tt-rail-item">' + I.heart + '<span class="tt-rail-count">' + esc(p.likes) + '</span></div>' +
+        '<div class="tt-rail-item">' + I.comment + '<span class="tt-rail-count">' + esc(p.comments) + '</span></div>' +
+        '<div class="tt-rail-item">' + I.bookmark + '<span class="tt-rail-count">' + esc(p.views) + '</span></div>' +
+        '<div class="tt-rail-item">' + I.share + '<span class="tt-rail-count">' + esc(p.shares) + '</span></div>' +
+        '<div class="tt-disc">' + avatarHtml(p) + '</div></div>' +
+      '<div class="tt-bottom">' +
+        '<div class="tt-handle">@' + esc(p.handle) + (p.verified ? verifiedBadge : "") + '</div>' +
+        '<div class="tt-caption">' + copyHtml(p.copy, 70) + '</div>' +
+        '<div class="tt-sponsored">' + I.info + 'Sponsored</div>' +
+        '<div class="tt-music">' + I.note + '<span>' + esc(p.creator) + ' &middot; Original audio</span></div>' +
+        '<button class="tt-cta js-tt-cta"><span>' + esc(p.cta) + '</span>' + I.chevR + '</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderGoogle(p) {
+    return '<div class="gg">' +
+      mediaHtml(p) +
+      '<div class="gg-body">' +
+        '<div class="gg-headline">' + esc(truncate(p.headline, 40).shown) + '</div>' +
+        '<div class="gg-source">' + avatarHtml(p) +
+          '<span class="gg-source-name">' + esc(truncate(p.business, 25).shown) + '</span>' +
+          '<span class="gg-source-dot">&middot;</span>' +
+          '<span class="gg-sponsored">Sponsored</span>' +
+          '<span class="gg-menu">' + I.dotsV + '</span></div>' +
+        (isBlank(p.description) ? "" : '<div class="gg-desc">' + esc(truncate(p.description, 90).shown) + '</div>') +
+        '<button class="gg-cta">' + esc(p.cta) + I.chevR + '</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderYouTube(p) {
+    var badges = '<span class="yt-ad-badge">Ad</span>' +
+      (p.format === "video" ? "" : '<span class="yt-duration">0:30</span>');
+    return '<div class="yt">' +
+      '<div style="position:relative">' + mediaHtml(p) + badges + '</div>' +
+      '<div class="yt-meta">' + avatarHtml(p) +
+        '<div class="yt-meta-text">' +
+          '<div class="yt-headline">' + esc(p.headline) + '</div>' +
+          '<div class="yt-sub">Sponsored &middot; ' + esc(p.business) + '</div></div>' +
+        '<span class="yt-menu">' + I.dotsV + '</span></div>' +
+      (isBlank(p.description) ? "" : '<div class="yt-desc">' + esc(p.description) + '</div>') +
+      '<button class="yt-cta">' + esc(p.cta) + I.ext + '</button>' +
+    '</div>';
+  }
+
+  function renderPinterest(p) {
+    return '<div class="pin">' +
+      '<div style="position:relative">' + mediaHtml(p) +
+        '<button class="pin-save">Save</button></div>' +
+      '<div class="pin-title">' + esc(p.headline) + '</div>' +
+      '<div class="pin-promoted">' + avatarHtml(p) +
+        '<span class="pin-promoted-text">Promoted by ' + esc(p.business) + '</span>' +
+        '<span class="pin-menu">' + I.dots + '</span></div>' +
+    '</div>';
+  }
+
+  var RENDERERS = {
+    facebook: renderFacebook,
+    tiktok: renderTikTok,
+    google: renderGoogle,
+    youtube: renderYouTube,
+    pinterest: renderPinterest
+  };
+
+  /* ---------------- wiring (post-render behaviors) ---------------- */
+  function wireSeeMore(root) {
+    root.querySelectorAll(".js-see-more").forEach(function (el) {
+      el.addEventListener("click", function () {
+        var hidden = el.parentElement.querySelector(".js-hidden");
+        if (hidden) hidden.hidden = false;
+        el.remove();
+      });
+    });
+  }
+  function wireCarousels(root) {
+    root.querySelectorAll(".js-carousel").forEach(function (car) {
+      var track = car.querySelector(".js-car-track");
+      var dots = car.querySelectorAll(".js-car-dots .dot");
+      var counter = car.querySelector(".js-car-counter");
+      var idx = 0;
+      function sync() {
+        var w = track.clientWidth || 1;
+        var i = Math.round(track.scrollLeft / w);
+        i = Math.max(0, Math.min(i, dots.length - 1));
+        if (i === idx) return;
+        idx = i;
+        dots.forEach(function (d, j) { d.classList.toggle("active", j === i); });
+        if (counter) counter.textContent = (i + 1) + "/" + dots.length;
+      }
+      track.addEventListener("scroll", function () { requestAnimationFrame(sync); });
+      car.querySelector(".js-car-prev").addEventListener("click", function () {
+        track.scrollBy({ left: -track.clientWidth, behavior: "smooth" });
+      });
+      car.querySelector(".js-car-next").addEventListener("click", function () {
+        track.scrollBy({ left: track.clientWidth, behavior: "smooth" });
+      });
+    });
+  }
+  function wireVideos(root, p) {
+    root.querySelectorAll(".js-video").forEach(function (video) {
+      var shell = video.parentElement;
+      var overlay = shell.querySelector(".js-play-overlay");
+      var muteBtn = shell.querySelector(".js-mute");
+      function showOverlay(show) { overlay.classList.toggle("visible", show); }
+      function tryPlay() {
+        var pr = video.play();
+        if (pr && pr.catch) pr.catch(function () { showOverlay(true); });
+        showOverlay(false);
+      }
+      if (p.autoplay) tryPlay(); else showOverlay(true);
+      overlay.addEventListener("click", tryPlay);
+      video.addEventListener("click", function () {
+        if (video.paused) tryPlay();
+        else { video.pause(); showOverlay(true); }
+      });
+      muteBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        video.muted = !video.muted;
+        muteBtn.innerHTML = video.muted ? I.soundOff : I.soundOn;
+      });
+    });
+  }
+  function wireTikTok(root) {
+    var cta = root.querySelector(".js-tt-cta");
+    if (cta) setTimeout(function () { cta.classList.add("hot"); }, 1500);
+  }
+
+  /* ---------------- render + integrations ---------------- */
+  var root = document.getElementById("root");
+  var params;
+
+  function render() {
+    params = computeParams();
+    document.body.classList.toggle("theme-dark", params.platform === "tiktok");
+    root.innerHTML = RENDERERS[params.platform](params);
+    wireSeeMore(root);
+    wireCarousels(root);
+    wireVideos(root, params);
+    wireTikTok(root);
+    console.info("[ad-mockup] v" + VERSION + " platform=" + params.platform +
+      " format=" + params.format);
+  }
+  render();
+
+  /* report height to parent (hosted-iframe embeds can auto-size) */
+  function postHeight() {
+    try {
+      parent.postMessage({ type: "ad-mockup:height", height: document.body.scrollHeight,
+        version: VERSION }, "*");
+    } catch (e) { /* no parent */ }
+  }
+  if ("ResizeObserver" in window) new ResizeObserver(postHeight).observe(document.body);
+  postHeight();
+
+  /* accept live param updates without a reload (avoids Bubble re-render flicker) */
+  window.addEventListener("message", function (ev) {
+    var d = ev.data;
+    if (!d || d.type !== "ad-mockup:params" || typeof d.params !== "object") return;
+    window.AD_MOCKUP_PARAMS = Object.assign({}, window.AD_MOCKUP_PARAMS, d.params);
+    render();
+  });
+})();
+</script>
+</body>
+</html>

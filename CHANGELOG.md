@@ -1,0 +1,18 @@
+# Changelog
+
+Versions track the `VERSION` const in `v1/ad-mockup.html` (mirrored in the
+`ad-mockup-version` meta tag). Param changes within `v1/` are additive-only;
+breaking changes ship as a new `v2/` directory.
+
+## 1.0.0 — 2026-07-08
+
+Initial release.
+
+- Platforms: `facebook` (mobile feed), `tiktok` (in-feed), `google` (Demand Gen /
+  Discover card), `youtube` (in-feed), `pinterest` (promoted pin).
+- Formats: `image`, `video` (muted autoplay, tap-pause, mute toggle, poster
+  fallback), `carousel` (scroll-snap swipe, dots, counter, hover arrows).
+- Params via URL query string or inline `window.AD_MOCKUP_PARAMS` (query wins);
+  placeholder fallbacks for missing media/avatar; `//cdn.bubble.io` URL
+  normalization; https-only media; full HTML escaping + CSP.
+- `postMessage` integration: emits `ad-mockup:height`, accepts `ad-mockup:params`.

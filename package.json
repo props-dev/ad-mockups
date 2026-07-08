@@ -1,0 +1,15 @@
+{
+  "name": "ad-mockups",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Parameterized iframe-able HTML mockups of social ad placements for props.co",
+  "scripts": {
+    "demo": "python3 -m http.server 4173",
+    "test": "playwright test tests/functional.spec.js",
+    "test:visual": "playwright test tests/visual.spec.js",
+    "test:visual:update": "playwright test tests/visual.spec.js --update-snapshots"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}
