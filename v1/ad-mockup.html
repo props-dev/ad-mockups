@@ -155,11 +155,14 @@
   .fbs-hdr-icons { display: flex; gap: 18px; }
   .fbs-hdr-icons svg { width: 20px; height: 20px; fill: #fff;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
+  /* the scrim carries the copy over bright creative — keep it strong enough that
+     white text stays legible on a blown-out sky */
   .fbs-bottom { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5;
     display: flex; flex-direction: column; align-items: center; gap: 8px;
-    padding: 24px 16px 18px; background: linear-gradient(transparent, rgba(0,0,0,.45)); }
+    padding: 44px 16px 18px;
+    background: linear-gradient(transparent, rgba(0,0,0,.45) 45%, rgba(0,0,0,.75)); }
   .fbs-copy { font-size: 14px; line-height: 1.35; text-align: center;
-    text-shadow: 0 1px 2px rgba(0,0,0,.5); overflow-wrap: break-word;
+    text-shadow: 0 1px 3px rgba(0,0,0,.8); overflow-wrap: break-word;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .fbs-chevron svg { width: 20px; height: 20px; fill: #fff;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
@@ -578,12 +581,15 @@ window.AD_MOCKUP_PARAMS = {
       var dots = p.media.map(function (_, i) {
         return '<span class="dot' + (i === 0 ? " active" : "") + '"></span>';
       }).join("");
+      /* story progress bars fill cumulatively (every card you've seen stays lit);
+         feed carousel dots only light the current card */
+      var dotsCls = "car-dots js-car-dots" + (opts.cumulativeDots ? " cumulative" : "");
       return '<div class="carousel js-carousel">' +
         '<div class="car-track js-car-track">' + items + '</div>' +
         '<span class="car-counter js-car-counter">1/' + p.media.length + '</span>' +
         '<button class="car-arrow prev js-car-prev" aria-label="Previous">' + I.chevL + '</button>' +
         '<button class="car-arrow next js-car-next" aria-label="Next">' + I.chevR + '</button>' +
-        '<div class="car-dots js-car-dots">' + dots + '</div></div>';
+        '<div class="' + dotsCls + '">' + dots + '</div></div>';
     }
     /* single image (also carousel that degraded to one item) */
     var img = p.media[0]
@@ -628,7 +634,7 @@ window.AD_MOCKUP_PARAMS = {
     var progress = isMultiCard ? "" :
       '<div class="fbs-progress"><span class="seg active"></span></div>';
     return '<div class="fbs">' +
-      mediaHtml(p, { dark: true, fill: true }) +
+      mediaHtml(p, { dark: true, fill: true, cumulativeDots: true }) +
       '<div class="fbs-scrim"></div>' + progress +
       '<div class="fbs-header">' + avatarHtml(p) +
         '<div class="fbs-id"><div class="fbs-name">' + esc(p.creator) +
@@ -730,8 +736,10 @@ window.AD_MOCKUP_PARAMS = {
   function wireCarousels(root) {
     root.querySelectorAll(".js-carousel").forEach(function (car) {
       var track = car.querySelector(".js-car-track");
+      var dotsWrap = car.querySelector(".js-car-dots");
       var dots = car.querySelectorAll(".js-car-dots .dot");
       var counter = car.querySelector(".js-car-counter");
+      var cumulative = dotsWrap.classList.contains("cumulative");
       var idx = 0;
       function sync() {
         var w = track.clientWidth || 1;
@@ -739,7 +747,9 @@ window.AD_MOCKUP_PARAMS = {
         i = Math.max(0, Math.min(i, dots.length - 1));
         if (i === idx) return;
         idx = i;
-        dots.forEach(function (d, j) { d.classList.toggle("active", j === i); });
+        dots.forEach(function (d, j) {
+          d.classList.toggle("active", cumulative ? j <= i : j === i);
+        });
         if (counter) counter.textContent = (i + 1) + "/" + dots.length;
       }
       track.addEventListener("scroll", function () { requestAnimationFrame(sync); });

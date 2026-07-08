@@ -151,15 +151,29 @@ test.describe("platform renderers", () => {
     expect(await page.locator(".fbs-copy").innerText()).toBe("Short copy");
   });
 
-  test("facebook story carousel: dots become progress segments and sync on advance", async ({ page }) => {
+  test("facebook story carousel: progress segments fill cumulatively on advance", async ({ page }) => {
     await page.goto(PAGE + "?placement=story&format=carousel" +
       "&media=" + encodeURIComponent(PX_RED) +
-      "&media=" + encodeURIComponent(PX_BLUE));
-    await expect(page.locator(".fbs .car-dots .dot")).toHaveCount(2);
+      "&media=" + encodeURIComponent(PX_BLUE) +
+      "&media=" + encodeURIComponent(PX_RED));
+    const dots = page.locator(".fbs .car-dots .dot");
+    await expect(dots).toHaveCount(3);
     // the numeric counter is hidden in story mode (progress bar replaces it)
     await expect(page.locator(".fbs .car-counter")).toBeHidden();
     await page.locator(".js-car-next").click();
-    await expect(page.locator(".fbs .car-dots .dot").nth(1)).toHaveClass(/active/);
+    // every segment up to the current card stays lit, unlike feed carousel dots
+    await expect(dots.nth(0)).toHaveClass(/active/);
+    await expect(dots.nth(1)).toHaveClass(/active/);
+    await expect(dots.nth(2)).not.toHaveClass(/active/);
+  });
+
+  test("feed carousel dots stay single-active (not cumulative)", async ({ page }) => {
+    await page.goto(PAGE + "?format=carousel" +
+      "&media=" + encodeURIComponent(PX_RED) +
+      "&media=" + encodeURIComponent(PX_BLUE));
+    await page.locator(".js-car-next").click();
+    await expect(page.locator(".car-dots .dot").nth(1)).toHaveClass(/active/);
+    await expect(page.locator(".car-dots .dot").nth(0)).not.toHaveClass(/active/);
   });
 
   test("placement defaults to feed and unknown values fall back to feed", async ({ page }) => {
