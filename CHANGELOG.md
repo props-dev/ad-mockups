@@ -4,6 +4,18 @@ Versions track the `VERSION` const in `v1/ad-mockup.html` (mirrored in the
 `ad-mockup-version` meta tag). Param changes within `v1/` are additive-only;
 breaking changes ship as a new `v2/` directory.
 
+## 1.2.0 — 2026-07-09
+
+- YouTube gains two placements via the existing `placement` param:
+  `shorts` (full-bleed 9:16 with like/dislike/comment/share rail, channel row +
+  Sponsored + CTA — dark theme) and `desktop` (watch-page in-stream ad: 16:9 player
+  with Ad chip, yellow scrubber, Skip button, companion CTA overlay + player controls;
+  title, channel row with Subscribe, and Like/Share/Save bar below — light theme).
+- `placement` is now validated against a per-platform allow-list (`facebook`:
+  feed|story, `youtube`: feed|shorts|desktop). A placement not valid for the chosen
+  platform falls back to that platform's default (`feed`) — existing URLs unaffected.
+- README: added an OpenAPI 3.1 spec for the renderer plus the postMessage event contract.
+
 ## 1.1.0 — 2026-07-08
 
 - New `placement` param (additive): `feed` (default) | `story`. Facebook only for

@@ -8,7 +8,7 @@
      object/fetch even if an escaping bug slipped through. script-src must stay
      'unsafe-inline' because the whole app is the inline script below. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src https: data:; media-src https:; base-uri 'none'; form-action 'none'">
-<meta name="ad-mockup-version" content="1.1.0">
+<meta name="ad-mockup-version" content="1.2.0">
 <title>Ad Preview</title>
 <style>
   /* ============ base ============ */
@@ -301,6 +301,101 @@
     margin: 12px 4px 4px; padding: 9px 0; width: calc(100% - 8px);
     background: #e6f0fd; color: #0b57d0; border-radius: 20px; font-size: 14px; font-weight: 500; }
   .yt-cta svg { width: 14px; height: 14px; fill: #0b57d0; }
+
+  /* ============================================================
+     YOUTUBE Shorts (placement=shorts) — full-bleed 9:16
+     ============================================================ */
+  .yts { position: relative; width: 100%; max-width: 420px; height: 100dvh; max-height: 100vh;
+    background: #000; color: #fff; overflow: hidden; }
+  .yts .media-shell { position: absolute; inset: 0; height: 100%; }
+  .yts .carousel, .yts .car-track, .yts .car-item { height: 100%; }
+  .yts-rail { position: absolute; right: 8px; bottom: 96px; z-index: 4;
+    display: flex; flex-direction: column; align-items: center; gap: 20px; }
+  .yts-rail-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .yts-rail-item svg { width: 30px; height: 30px; fill: #fff;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
+  .yts-rail-count { font-size: 12px; font-weight: 500; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+  .yts-flip { display: flex; transform: rotate(180deg); }
+  .yts-disc { width: 42px; height: 42px; border-radius: 7px; overflow: hidden; margin-top: 4px;
+    border: 1px solid rgba(255,255,255,.35); }
+  .yts-disc .avatar { width: 100%; height: 100%; border-radius: 7px; font-size: 15px; }
+  .yts-bottom { position: absolute; left: 0; right: 70px; bottom: 0; z-index: 4;
+    padding: 0 14px 16px; background: linear-gradient(transparent, rgba(0,0,0,.4)); }
+  .yts-chan { display: flex; align-items: center; gap: 8px; }
+  .yts-chan .avatar { width: 30px; height: 30px; font-size: 12px; }
+  .yts-chan-name { font-size: 14px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+  .yts-copy { font-size: 14px; line-height: 1.35; margin-top: 8px;
+    text-shadow: 0 1px 2px rgba(0,0,0,.5); overflow-wrap: break-word; }
+  .yts-sponsored { display: inline-flex; align-items: center; gap: 4px; margin-top: 7px;
+    font-size: 12px; color: rgba(255,255,255,.8); }
+  .yts-sponsored svg { width: 11px; height: 11px; fill: rgba(255,255,255,.8); }
+  .yts-cta { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px;
+    width: 100%; padding: 10px 14px; border-radius: 22px; font-size: 14px; font-weight: 600;
+    background: #fff; color: #0f0f0f; }
+  .yts-cta svg { width: 13px; height: 13px; fill: #0f0f0f; }
+  .yts .car-dots { bottom: auto; top: 12px; }
+  .yts .car-counter { top: 12px; }
+  .yts .mute-btn { bottom: auto; top: 14px; right: 12px; }
+
+  /* ============================================================
+     YOUTUBE desktop watch page (placement=desktop) — 16:9 in-stream ad
+     ============================================================ */
+  .ytd { width: 100%; max-width: 720px; margin: 8px auto; color: #0f0f0f;
+    font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
+  .ytd-player { position: relative; width: 100%; background: #000;
+    border-radius: 12px; overflow: hidden; }
+  .ytd-player .media-shell { border-radius: 12px; }
+  /* ad chrome */
+  .ytd-scrub { position: absolute; left: 0; right: 0; bottom: 39px; height: 3px;
+    background: rgba(255,255,255,.3); z-index: 5; }
+  .ytd-scrub-fill { display: block; width: 34%; height: 100%; background: #ffce00; }
+  .ytd-adchip { position: absolute; left: 12px; bottom: 50px; z-index: 5; background: #ffce00;
+    color: #000; font-size: 12px; font-weight: 700; padding: 1px 5px; border-radius: 2px; }
+  .ytd-skip { position: absolute; right: 0; bottom: 56px; z-index: 5;
+    display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,.6); color: #fff;
+    font-size: 14px; font-weight: 500; padding: 9px 16px;
+    border: 1px solid rgba(255,255,255,.3); border-right: 0; border-radius: 3px 0 0 3px; }
+  .ytd-skip svg { width: 15px; height: 15px; fill: #fff; }
+  .ytd-companion { position: absolute; left: 12px; bottom: 78px; z-index: 5; max-width: 340px;
+    display: flex; align-items: center; gap: 10px; background: rgba(28,28,28,.94);
+    border-radius: 8px; padding: 8px 10px; }
+  .ytd-companion .avatar { width: 34px; height: 34px; font-size: 13px; border-radius: 6px; }
+  .ytd-companion-text { min-width: 0; }
+  .ytd-companion-head { color: #fff; font-size: 13px; font-weight: 600; line-height: 1.25;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ytd-companion-sub { color: #aaa; font-size: 12px; }
+  .ytd-companion-cta { flex-shrink: 0; background: #3ea6ff; color: #0f0f0f; font-weight: 600;
+    font-size: 13px; padding: 7px 12px; border-radius: 18px; white-space: nowrap; }
+  /* control bar */
+  .ytd-controls { position: absolute; left: 0; right: 0; bottom: 0; height: 39px; z-index: 4;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 12px;
+    background: linear-gradient(transparent, rgba(0,0,0,.6)); }
+  .ytd-ctrl-left, .ytd-ctrl-right { display: flex; align-items: center; gap: 14px; }
+  .ytd-controls svg { width: 18px; height: 18px; fill: #fff; }
+  .ytd-time { font-size: 12px; color: #fff; white-space: nowrap; }
+  .ytd-cc { color: #fff; font-size: 11px; font-weight: 700; line-height: 1;
+    border-bottom: 2px solid #fff; padding-bottom: 1px; }
+  /* below the player */
+  .ytd-title { font-size: 18px; font-weight: 700; line-height: 1.3; margin: 12px 4px 0;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .ytd-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    flex-wrap: wrap; padding: 12px 4px 4px; }
+  .ytd-chan { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .ytd-chan .avatar { width: 40px; height: 40px; font-size: 15px; }
+  .ytd-chan-name { font-size: 15px; font-weight: 600; }
+  .ytd-chan-subs { font-size: 12px; color: #606060; }
+  .ytd-subscribe { background: #0f0f0f; color: #fff; font-size: 14px; font-weight: 600;
+    padding: 8px 16px; border-radius: 18px; margin-left: 4px; white-space: nowrap; }
+  .ytd-actions { display: flex; align-items: center; gap: 8px; }
+  .ytd-like { display: flex; align-items: center; background: #f2f2f2; border-radius: 18px; height: 36px; }
+  .ytd-like-btn { display: flex; align-items: center; gap: 8px; padding: 0 8px 0 14px; }
+  .ytd-like svg { width: 18px; height: 18px; fill: #0f0f0f; }
+  .ytd-like-count { font-size: 13px; font-weight: 500; }
+  .ytd-div { width: 1px; height: 20px; background: #ccc; }
+  .ytd-flip { display: flex; transform: rotate(180deg); padding: 0 14px; }
+  .ytd-action { display: flex; align-items: center; gap: 6px; background: #f2f2f2;
+    border-radius: 18px; height: 36px; padding: 0 14px; font-size: 13px; font-weight: 500; color: #0f0f0f; }
+  .ytd-action svg { width: 18px; height: 18px; fill: #0f0f0f; }
 </style>
 </head>
 <body>
@@ -316,7 +411,7 @@
    ===================================================================== */
 window.AD_MOCKUP_PARAMS = {
   // platform: "facebook",              // facebook | tiktok | google | youtube | pinterest
-  // placement: "feed",                 // facebook only: feed | story
+  // placement: "feed",                 // facebook: feed | story · youtube: feed | shorts | desktop
   // format: "image",                   // video | image | carousel
   // creator: "Jess Reviews",
   // handle: "jessreviews",
@@ -344,7 +439,7 @@ window.AD_MOCKUP_PARAMS = {
 
   /* Bump on any change; keep in sync with the ad-mockup-version meta tag.
      Param changes must be additive-only — Bubble pages depend on this contract. */
-  var VERSION = "1.1.0";
+  var VERSION = "1.2.0";
 
   /* ---------------- defaults ---------------- */
   var COMMON = {
@@ -390,6 +485,12 @@ window.AD_MOCKUP_PARAMS = {
       cta: "Save", ratio: "2:3",
       copy: ""
     }
+  };
+  /* valid placements per platform; first entry is the default. Platforms not
+     listed here only support "feed". Additive: new placements can be appended. */
+  var PLACEMENTS = {
+    facebook: ["feed", "story"],
+    youtube: ["feed", "shorts", "desktop"]
   };
 
   /* ---------------- param engine ---------------- */
@@ -447,7 +548,9 @@ window.AD_MOCKUP_PARAMS = {
     p.media = p.media ? toMediaList(p.media) : [];
     p.avatar = normalizeUrl(p.avatar);
     p.poster = normalizeUrl(p.poster);
-    p.placement = String(p.placement).toLowerCase().trim() === "story" ? "story" : "feed";
+    var allowedPlacements = PLACEMENTS[platform] || ["feed"];
+    var reqPlacement = String(p.placement).toLowerCase().trim();
+    p.placement = allowedPlacements.indexOf(reqPlacement) >= 0 ? reqPlacement : allowedPlacements[0];
     if (isBlank(p.handle)) p.handle = String(p.creator).toLowerCase().replace(/[^a-z0-9._]/g, "");
     if (isBlank(p.business)) p.business = p.creator;
     p.verified = boolish(p.verified);
@@ -539,6 +642,9 @@ window.AD_MOCKUP_PARAMS = {
     check: svg("0 0 16 16", "M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm-.9 10L3.9 7.8l1.2-1.2 2 2 3.8-3.8 1.2 1.2z"),
     info: svg("0 0 16 16", "M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm-.8 5.5h1.6V12H7.2zM8 3.5A1 1 0 1 1 8 5.5 1 1 0 0 1 8 3.5z"),
     ext: svg("0 0 16 16", "M9 2h5v5h-1.5V4.6L7 10.1 5.9 9l5.5-5.5H9zM3.5 4H7v1.5H5v5.5h5.5v-2H12V12.5H3.5z"),
+    fullscreen: svg("0 0 16 16", "M2 2h4v1.6H3.6V6H2zm8 0h4v4h-1.6V3.6H10zM3.6 10v2.4H6V14H2v-4zM14 10v4h-4v-1.6h2.4V10z"),
+    skip: svg("0 0 16 16", "M3.5 3v10l6-5zm6.5 0h2v10h-2z"),
+    download: svg("0 0 16 16", "M7 1.5h2v6.3l2.2-2.2 1.4 1.4L8 12 3.4 7l1.4-1.4L7 7.8zM2.5 12.5h11V14h-11z"),
     image: '<svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9.5" r="1.6"/><path d="m3 17 5-4.5 4 3.5 3.5-3 5.5 4"/></svg>'
   };
   var verifiedBadge = '<span class="verified">' + I.check + '</span>';
@@ -690,6 +796,8 @@ window.AD_MOCKUP_PARAMS = {
   }
 
   function renderYouTube(p) {
+    if (p.placement === "shorts") return renderYouTubeShorts(p);
+    if (p.placement === "desktop") return renderYouTubeDesktop(p);
     var badges = '<span class="yt-ad-badge">Ad</span>' +
       (p.format === "video" ? "" : '<span class="yt-duration">0:30</span>');
     return '<div class="yt">' +
@@ -701,6 +809,62 @@ window.AD_MOCKUP_PARAMS = {
         '<span class="yt-menu">' + I.dotsV + '</span></div>' +
       (isBlank(p.description) ? "" : '<div class="yt-desc">' + esc(p.description) + '</div>') +
       '<button class="yt-cta">' + esc(p.cta) + I.ext + '</button>' +
+    '</div>';
+  }
+
+  function renderYouTubeShorts(p) {
+    return '<div class="yts">' +
+      mediaHtml(p, { dark: true, fill: true }) +
+      '<div class="yts-rail">' +
+        '<div class="yts-rail-item">' + I.thumb +
+          '<span class="yts-rail-count">' + esc(p.likes) + '</span></div>' +
+        '<div class="yts-rail-item"><span class="yts-flip">' + I.thumb + '</span>' +
+          '<span class="yts-rail-count">Dislike</span></div>' +
+        '<div class="yts-rail-item">' + I.comment +
+          '<span class="yts-rail-count">' + esc(p.comments) + '</span></div>' +
+        '<div class="yts-rail-item">' + I.share +
+          '<span class="yts-rail-count">Share</span></div>' +
+        '<div class="yts-disc">' + avatarHtml(p) + '</div></div>' +
+      '<div class="yts-bottom">' +
+        '<div class="yts-chan">' + avatarHtml(p) +
+          '<span class="yts-chan-name">' + esc(p.business) + '</span></div>' +
+        (isBlank(p.copy) ? "" : '<div class="yts-copy">' + ellipsize(p.copy, 80) + '</div>') +
+        '<div class="yts-sponsored">' + I.info + 'Sponsored</div>' +
+        '<button class="yts-cta"><span>' + esc(p.cta) + '</span>' + I.chevR + '</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderYouTubeDesktop(p) {
+    return '<div class="ytd">' +
+      '<div class="ytd-player">' + mediaHtml(p) +
+        '<div class="ytd-companion">' + avatarHtml(p) +
+          '<div class="ytd-companion-text">' +
+            '<div class="ytd-companion-head">' + esc(truncate(p.headline, 40).shown) + '</div>' +
+            '<div class="ytd-companion-sub">' + esc(p.domain) + '</div></div>' +
+          '<button class="ytd-companion-cta">' + esc(p.cta) + '</button></div>' +
+        '<span class="ytd-adchip">Ad</span>' +
+        '<button class="ytd-skip">Skip' + I.skip + '</button>' +
+        '<div class="ytd-scrub"><span class="ytd-scrub-fill"></span></div>' +
+        '<div class="ytd-controls">' +
+          '<span class="ytd-ctrl-left">' + I.play + I.soundOn +
+            '<span class="ytd-time">0:08 / 0:30</span></span>' +
+          '<span class="ytd-ctrl-right"><span class="ytd-cc">CC</span>' + I.fullscreen + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="ytd-title">' + esc(p.headline) + '</div>' +
+      '<div class="ytd-meta">' +
+        '<div class="ytd-chan">' + avatarHtml(p) +
+          '<div><div class="ytd-chan-name">' + esc(p.business) + '</div>' +
+          '<div class="ytd-chan-subs">' + esc(p.views) + ' subscribers</div></div>' +
+          '<button class="ytd-subscribe">Subscribe</button></div>' +
+        '<div class="ytd-actions">' +
+          '<span class="ytd-like"><span class="ytd-like-btn">' + I.thumb +
+            '<span class="ytd-like-count">' + esc(p.likes) + '</span></span>' +
+            '<span class="ytd-div"></span><span class="ytd-flip">' + I.thumb + '</span></span>' +
+          '<button class="ytd-action">' + I.share + 'Share</button>' +
+          '<button class="ytd-action">' + I.download + 'Save</button></div>' +
+      '</div>' +
     '</div>';
   }
 
@@ -797,7 +961,8 @@ window.AD_MOCKUP_PARAMS = {
   function render() {
     params = computeParams();
     document.body.classList.toggle("theme-dark", params.platform === "tiktok" ||
-      (params.platform === "facebook" && params.placement === "story"));
+      (params.platform === "facebook" && params.placement === "story") ||
+      (params.platform === "youtube" && params.placement === "shorts"));
     root.innerHTML = RENDERERS[params.platform](params);
     wireSeeMore(root);
     wireCarousels(root);

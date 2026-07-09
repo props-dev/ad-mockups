@@ -203,6 +203,46 @@ test.describe("platform renderers", () => {
     await expect(page.locator(".yt-ad-badge")).toHaveText("Ad");
   });
 
+  test("youtube shorts: full-bleed 9:16 with action rail, Sponsored, CTA", async ({ page }) => {
+    await page.goto(PAGE + "?platform=youtube&placement=shorts&business=Acme%20Skin%20Co.&cta=Shop%20now");
+    await expect(page.locator(".yts")).toBeVisible();
+    await expect(page.locator("body")).toHaveClass(/theme-dark/);
+    await expect(page.locator(".yts-chan-name")).toContainText("Acme Skin Co.");
+    await expect(page.locator(".yts-sponsored")).toContainText("Sponsored");
+    await expect(page.locator(".yts-cta")).toContainText("Shop now");
+    // in-feed youtube chrome must not leak in
+    expect(await page.locator(".yt-ad-badge").count()).toBe(0);
+  });
+
+  test("youtube desktop: watch-page in-stream ad chrome (Ad chip, Skip, companion CTA, light theme)", async ({ page }) => {
+    await page.goto(PAGE + "?platform=youtube&placement=desktop&business=Acme%20Skin%20Co." +
+      "&headline=The%2030-day%20results&cta=Visit%20site&domain=shop.acme.com&views=74.1K");
+    await expect(page.locator(".ytd")).toBeVisible();
+    // desktop stays light (only shorts goes dark)
+    expect(await page.locator("body.theme-dark").count()).toBe(0);
+    await expect(page.locator(".ytd-adchip")).toHaveText("Ad");
+    await expect(page.locator(".ytd-skip")).toContainText("Skip");
+    await expect(page.locator(".ytd-companion-cta")).toHaveText("Visit site");
+    await expect(page.locator(".ytd-companion-sub")).toHaveText("shop.acme.com");
+    await expect(page.locator(".ytd-title")).toContainText("The 30-day results");
+    await expect(page.locator(".ytd-subscribe")).toHaveText("Subscribe");
+    await expect(page.locator(".ytd-chan-subs")).toContainText("74.1K subscribers");
+  });
+
+  test("youtube placement defaults to feed; unknown/cross-platform values fall back", async ({ page }) => {
+    // youtube with no placement → in-feed card
+    await page.goto(PAGE + "?platform=youtube");
+    await expect(page.locator(".yt")).toBeVisible();
+    // a facebook-only placement on youtube falls back to feed
+    await page.goto(PAGE + "?platform=youtube&placement=story");
+    await expect(page.locator(".yt")).toBeVisible();
+    expect(await page.locator(".yts, .ytd, .fbs").count()).toBe(0);
+    // a youtube-only placement on facebook falls back to feed
+    await page.goto(PAGE + "?platform=facebook&placement=shorts");
+    await expect(page.locator(".fb")).toBeVisible();
+    expect(await page.locator(".yts").count()).toBe(0);
+  });
+
   test("pinterest: Save button and business falls back to creator", async ({ page }) => {
     await page.goto(PAGE + "?platform=pinterest&creator=Jess");
     await expect(page.locator(".pin-save")).toHaveText("Save");

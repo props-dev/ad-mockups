@@ -63,6 +63,12 @@ requests). Each cell shows the exact URL that produces it.</p>
 
   var SIZES = { facebook: [375, 660], tiktok: [375, 667], google: [375, 440], youtube: [375, 420],
     pinterest: [375, 700] };
+  function sizeFor(p) {
+    if (p.placement === "story") return [375, 667];
+    if (p.platform === "youtube" && p.placement === "shorts") return [375, 667];
+    if (p.platform === "youtube" && p.placement === "desktop") return [560, 480];
+    return SIZES[p.platform] || [375, 640];
+  }
   var cases = [];
 
   /* full matrix: 5 platforms x 3 formats */
@@ -95,6 +101,26 @@ requests). Each cell shows the exact URL that produces it.</p>
     });
   });
 
+  /* youtube shorts + desktop placements */
+  ["image", "video", "carousel"].forEach(function (format) {
+    var vertMedia = format === "video" ? VIDEO :
+      format === "carousel" ? [IMG("yts-c1", 720, 1280), IMG("yts-c2", 720, 1280), IMG("yts-c3", 720, 1280)] :
+      IMG("yts-img", 720, 1280);
+    cases.push({
+      label: "youtube shorts / " + format,
+      p: merge(CREATOR, COPYSET, { platform: "youtube", placement: "shorts", format: format,
+        media: vertMedia }, format === "video" ? { poster: IMG("yts-poster", 720, 1280) } : {})
+    });
+    var wideMedia = format === "video" ? VIDEO :
+      format === "carousel" ? [IMG("ytd-c1", 1280, 720), IMG("ytd-c2", 1280, 720), IMG("ytd-c3", 1280, 720)] :
+      IMG("ytd-img", 1280, 720);
+    cases.push({
+      label: "youtube desktop / " + format,
+      p: merge(CREATOR, COPYSET, { platform: "youtube", placement: "desktop", format: format,
+        media: wideMedia }, format === "video" ? { poster: IMG("ytd-poster", 1280, 720) } : {})
+    });
+  });
+
   /* edge cases */
   cases.push({ label: "facebook / no media, no avatar (placeholders)",
     p: { platform: "facebook", creator: "Sam Okafor", copy: "Placeholder mode — no media params passed." } });
@@ -118,7 +144,7 @@ requests). Each cell shows the exact URL that produces it.</p>
 
   var grid = document.getElementById("grid");
   cases.forEach(function (c) {
-    var size = c.p.placement === "story" ? [375, 667] : (SIZES[c.p.platform] || [375, 640]);
+    var size = sizeFor(c.p);
     var url = "ad-mockup.html?" + qs(c.p);
     var cell = document.createElement("div");
     cell.className = "cell";

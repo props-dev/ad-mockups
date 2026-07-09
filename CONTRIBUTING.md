@@ -10,8 +10,8 @@
    build step, no network requests except user-supplied media URLs. This is what
    makes it embeddable anywhere (including pasted directly into a Bubble HTML
    element).
-3. Bump `VERSION` in the script **and** the `ad-mockup-version` meta tag on
-   every change, and add a CHANGELOG entry.
+3. Bump `VERSION` in the script **and** the `ad-mockup-version` meta tag (and the
+   `info.version` in the README OpenAPI block) on every change, and add a CHANGELOG entry.
 
 ## Local development
 
@@ -48,6 +48,22 @@ npm run test:visual:update # refresh baselines after an intentional visual chang
 4. Update: the platform comment in the `AD_MOCKUP_PARAMS` block, `demo.html`
    (`SIZES` + platforms array), README platform + sizing tables, functional
    tests, and visual baselines.
+
+## Adding a placement (a second surface within a platform)
+
+A placement is a variant of an existing platform (e.g. Facebook `story`, YouTube
+`shorts`/`desktop`) selected by the `placement` param.
+
+1. Append the new slug to that platform's array in the `PLACEMENTS` map (the first
+   entry is the default). Values not in the list fall back to the default, so this is
+   additive — existing URLs keep working.
+2. Write a `render<Name><Placement>(p)` function and dispatch to it from the top of the
+   platform's main renderer (`if (p.placement === "<slug>") return ...`).
+3. Add a namespaced CSS block. If the surface is full-bleed dark (story, shorts), add it
+   to the `theme-dark` toggle in `render()`.
+4. Update: the `placement` comment in the `AD_MOCKUP_PARAMS` block, `demo.html`
+   (`sizeFor()` + the placement cases), README platform/param/sizing tables and the
+   OpenAPI `placement` enum, the CHANGELOG, functional tests, and visual baselines.
 
 ## Deploy
 

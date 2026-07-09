@@ -40,6 +40,28 @@ for (const format of FORMATS) {
   });
 }
 
+for (const format of FORMATS) {
+  test(`youtube-shorts / ${format}`, async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto(
+      `${PAGE}?platform=youtube&placement=shorts&format=${format}` +
+        "&business=Acme%20Skin%20Co.&cta=Shop%20now&likes=12K&comments=340" +
+        "&copy=I%20tried%20this%20for%2030%20days%20so%20you%20don%27t%20have%20to"
+    );
+    await expect(page).toHaveScreenshot(`youtube-shorts-${format}.png`);
+  });
+
+  test(`youtube-desktop / ${format}`, async ({ page }) => {
+    await page.setViewportSize({ width: 560, height: 480 });
+    await page.goto(
+      `${PAGE}?platform=youtube&placement=desktop&format=${format}` +
+        "&business=Acme%20Skin%20Co.&cta=Visit%20site&domain=shop.acme.com" +
+        "&headline=The%2030-day%20results%20speak%20for%20themselves&likes=1.2K&views=74.1K"
+    );
+    await expect(page).toHaveScreenshot(`youtube-desktop-${format}.png`);
+  });
+}
+
 test("facebook / no params (pure defaults)", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 700 });
   await page.goto(PAGE);
