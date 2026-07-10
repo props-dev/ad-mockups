@@ -229,6 +229,25 @@ test.describe("platform renderers", () => {
     await expect(page.locator(".ytd-chan-subs")).toContainText("74.1K subscribers");
   });
 
+  /* the real-duration path (badge/clock/scrubber fed by <video> metadata) needs
+     a network-served https video, so it can't run in this zero-network suite —
+     these pin the fallbacks that keep placeholder mode deterministic */
+  test("youtube: duration chrome falls back safely without a real video", async ({ page }) => {
+    // in-feed video with no source: badge exists but stays hidden (no made-up number)
+    await page.goto(PAGE + "?platform=youtube&format=video");
+    const badge = page.locator(".js-yt-duration");
+    expect(await badge.count()).toBe(1);
+    await expect(badge).toBeHidden();
+    // in-feed image keeps the static 0:30 stand-in
+    await page.goto(PAGE + "?platform=youtube&format=image");
+    await expect(page.locator(".yt-duration")).toHaveText("0:30");
+    // desktop keeps the static clock and part-filled scrubber
+    await page.goto(PAGE + "?platform=youtube&placement=desktop&format=video");
+    await expect(page.locator(".js-ytd-time")).toHaveText("0:08 / 0:30");
+    const fill = await page.locator(".js-ytd-fill").evaluate(el => getComputedStyle(el).width);
+    expect(parseFloat(fill)).toBeGreaterThan(0);
+  });
+
   test("youtube placement defaults to feed; unknown/cross-platform values fall back", async ({ page }) => {
     // youtube with no placement → in-feed card
     await page.goto(PAGE + "?platform=youtube");

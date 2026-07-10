@@ -8,7 +8,7 @@
      object/fetch even if an escaping bug slipped through. script-src must stay
      'unsafe-inline' because the whole app is the inline script below. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src https: data:; media-src https:; base-uri 'none'; form-action 'none'">
-<meta name="ad-mockup-version" content="1.2.0">
+<meta name="ad-mockup-version" content="1.3.0">
 <title>Ad Preview</title>
 <style>
   /* ============ base ============ */
@@ -439,7 +439,7 @@ window.AD_MOCKUP_PARAMS = {
 
   /* Bump on any change; keep in sync with the ad-mockup-version meta tag.
      Param changes must be additive-only — Bubble pages depend on this contract. */
-  var VERSION = "1.2.0";
+  var VERSION = "1.3.0";
 
   /* ---------------- defaults ---------------- */
   var COMMON = {
@@ -571,6 +571,13 @@ window.AD_MOCKUP_PARAMS = {
   function cssRatio(r) {
     var m = /^([\d.]+)\s*[:/]\s*([\d.]+)$/.exec(String(r).trim());
     return m ? m[1] + " / " + m[2] : "1 / 1";
+  }
+  /* seconds → YouTube-style timestamp: 0:07, 1:05, 1:02:03 */
+  function fmtTime(s) {
+    s = Math.max(0, Math.round(s));
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    function pad2(n) { return (n < 10 ? "0" : "") + n; }
+    return (h ? h + ":" + pad2(m) : m) + ":" + pad2(sec);
   }
   var AVATAR_COLORS = ["#5B6DCD", "#D65C8B", "#3E8E7E", "#C97B3D", "#7B5BC7", "#2E86AB"];
   function avatarColor(name) {
@@ -798,8 +805,12 @@ window.AD_MOCKUP_PARAMS = {
   function renderYouTube(p) {
     if (p.placement === "shorts") return renderYouTubeShorts(p);
     if (p.placement === "desktop") return renderYouTubeDesktop(p);
+    /* video: real duration filled in by wireYouTubeTime once metadata loads
+       (stays hidden if it never does); image: static 0:30 stand-in */
     var badges = '<span class="yt-ad-badge">Ad</span>' +
-      (p.format === "video" ? "" : '<span class="yt-duration">0:30</span>');
+      (p.format === "video"
+        ? '<span class="yt-duration js-yt-duration" hidden></span>'
+        : '<span class="yt-duration">0:30</span>');
     return '<div class="yt">' +
       '<div style="position:relative">' + mediaHtml(p) + badges + '</div>' +
       '<div class="yt-meta">' + avatarHtml(p) +
@@ -845,10 +856,12 @@ window.AD_MOCKUP_PARAMS = {
           '<button class="ytd-companion-cta">' + esc(p.cta) + '</button></div>' +
         '<span class="ytd-adchip">Ad</span>' +
         '<button class="ytd-skip">Skip' + I.skip + '</button>' +
-        '<div class="ytd-scrub"><span class="ytd-scrub-fill"></span></div>' +
+        /* time + scrubber are static stand-ins until wireYouTubeTime binds
+           them to the real <video>; they stay as-is for image format */
+        '<div class="ytd-scrub"><span class="ytd-scrub-fill js-ytd-fill"></span></div>' +
         '<div class="ytd-controls">' +
           '<span class="ytd-ctrl-left">' + I.play + I.soundOn +
-            '<span class="ytd-time">0:08 / 0:30</span></span>' +
+            '<span class="ytd-time js-ytd-time">0:08 / 0:30</span></span>' +
           '<span class="ytd-ctrl-right"><span class="ytd-cc">CC</span>' + I.fullscreen + '</span>' +
         '</div>' +
       '</div>' +
@@ -953,6 +966,33 @@ window.AD_MOCKUP_PARAMS = {
     var cta = root.querySelector(".js-tt-cta");
     if (cta) setTimeout(function () { cta.classList.add("hot"); }, 1500);
   }
+  /* YouTube duration chrome driven by the real <video> metadata. In-feed badge:
+     total length on the thumbnail, remaining time counting down while the
+     preview plays (matches real YouTube). Desktop: live current/total clock +
+     yellow scrubber fill. Static fallbacks remain when there is no video or
+     its metadata never loads. */
+  function wireYouTubeTime(root) {
+    var video = root.querySelector(".js-video");
+    if (!video) return;
+    var badge = root.querySelector(".js-yt-duration");
+    var time = root.querySelector(".js-ytd-time");
+    var fill = root.querySelector(".js-ytd-fill");
+    if (!badge && !time && !fill) return;
+    function sync() {
+      var d = video.duration;
+      if (!isFinite(d) || d <= 0) return;
+      if (badge) {
+        badge.textContent = fmtTime(video.paused ? d : d - video.currentTime);
+        badge.hidden = false;
+      }
+      if (time) time.textContent = fmtTime(video.currentTime) + " / " + fmtTime(d);
+      if (fill) fill.style.width = (video.currentTime / d * 100).toFixed(2) + "%";
+    }
+    ["loadedmetadata", "timeupdate", "play", "pause"].forEach(function (ev) {
+      video.addEventListener(ev, sync);
+    });
+    sync();
+  }
 
   /* ---------------- render + integrations ---------------- */
   var root = document.getElementById("root");
@@ -968,6 +1008,7 @@ window.AD_MOCKUP_PARAMS = {
     wireCarousels(root);
     wireVideos(root, params);
     wireTikTok(root);
+    wireYouTubeTime(root);
     console.info("[ad-mockup] v" + VERSION + " platform=" + params.platform +
       " placement=" + params.placement + " format=" + params.format);
   }

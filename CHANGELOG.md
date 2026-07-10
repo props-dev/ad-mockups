@@ -4,6 +4,20 @@ Versions track the `VERSION` const in `v1/ad-mockup.html` (mirrored in the
 `ad-mockup-version` meta tag). Param changes within `v1/` are additive-only;
 breaking changes ship as a new `v2/` directory.
 
+## 1.3.0 — 2026-07-10
+
+- YouTube duration chrome is now real, read from the `<video>` element's metadata
+  (`preload="metadata"` was already set, so no extra download):
+  - In-feed video ads gain the bottom-right duration badge (previously omitted for
+    video, hardcoded `0:30` for image). It shows the creative's actual length and
+    counts down the remaining time while the preview plays, matching real YouTube.
+  - Desktop watch-page ads get a live `current / total` clock and a yellow scrubber
+    that fills with actual playback progress (previously static `0:08 / 0:30` at 34%).
+- Static fallbacks are unchanged when there's no real video: image-format ads keep
+  the `0:30` stand-in badge and the desktop mock keeps its static clock/scrubber, and
+  a video whose metadata fails to load leaves the in-feed badge hidden rather than
+  showing a wrong number. No param changes.
+
 ## 1.2.0 — 2026-07-09
 
 - YouTube gains two placements via the existing `placement` param:
