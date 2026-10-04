@@ -55,6 +55,19 @@ test.describe("contract: param precedence", () => {
     });
     await expect(page.locator(".fb-name")).toContainText("Live Update");
   });
+
+  test("postMessage applies counts and byline after a bare page load", async ({ page }) => {
+    await page.goto(PAGE);
+    await page.evaluate(() => {
+      window.postMessage({ type: "ad-mockup:params", params: {
+        platform: "tiktok", creator: "Joanie Sprague", handle: "unverified.handle",
+        counts: "0", byline: "name"
+      } }, "*");
+    });
+    await expect(page.locator(".tt-handle")).toHaveText("Joanie Sprague");
+    await expect(page.locator(".tt-rail-count")).toHaveCount(0);
+    await expect(page.locator(".tt-rail-item svg")).toHaveCount(4);
+  });
 });
 
 test.describe("security", () => {
@@ -186,8 +199,58 @@ test.describe("platform renderers", () => {
     await page.goto(PAGE + "?platform=tiktok&creator=" + encodeURIComponent("Jess Rivera"));
     await expect(page.locator("body")).toHaveClass(/theme-dark/);
     await expect(page.locator(".tt-handle")).toContainText("@jessrivera");
+    await expect(page.locator(".tt-rail-count")).toHaveText(["1.2K", "84", "12K", "23"]);
     await expect(page.locator(".tt-sponsored")).toContainText("Sponsored");
     await expect(page.locator(".tt-cta")).toContainText("Shop now");
+  });
+
+  test("tiktok: counts=0 hides numbers and keeps the action rail", async ({ page }) => {
+    await page.goto(PAGE + "?platform=tiktok&counts=0");
+    await expect(page.locator(".tt-rail-count")).toHaveCount(0);
+    await expect(page.locator(".tt-rail-item")).toHaveCount(4);
+    await expect(page.locator(".tt-rail-item svg")).toHaveCount(4);
+    await expect(page.locator(".tt-rail-avatar .avatar")).toBeVisible();
+    await expect(page.locator(".tt-follow")).toBeVisible();
+    await expect(page.locator(".tt-disc")).toBeVisible();
+  });
+
+  test("facebook: counts=0 hides the feed counts row but keeps actions", async ({ page }) => {
+    await page.goto(PAGE + "?counts=0");
+    await expect(page.locator(".fb-counts")).toHaveCount(0);
+    await expect(page.locator(".fb-action")).toHaveCount(3);
+  });
+
+  test("tiktok: byline=name shows creator without @ even with an explicit handle", async ({ page }) => {
+    await page.goto(PAGE + "?platform=tiktok&creator=" + encodeURIComponent("Joanie Sprague") +
+      "&handle=known.handle&byline=name");
+    await expect(page.locator(".tt-handle")).toHaveText("Joanie Sprague");
+    await expect(page.locator(".tt-rail-count")).toHaveCount(4);
+  });
+
+  test("tiktok: invalid byline falls back to @handle", async ({ page }) => {
+    await page.goto(PAGE + "?platform=tiktok&creator=Joanie%20Sprague&byline=other");
+    await expect(page.locator(".tt-handle")).toHaveText("@joaniesprague");
+  });
+
+  test("tiktok: nav is off by default", async ({ page }) => {
+    await page.goto(PAGE + "?platform=tiktok");
+    await expect(page.locator(".tt-nav")).toHaveCount(0);
+    await expect(page.locator(".tt-screen")).toHaveCount(0);
+  });
+
+  test("tiktok: nav=1 adds the tab bar below the screen and keeps the whole ad in view", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 623 });
+    await page.goto(PAGE + "?platform=tiktok&nav=1&cta=Learn%20more");
+    await expect(page.locator(".tt-nav-item")).toHaveText(["Home", "Friends", "", "Inbox", "Profile"]);
+    const screen = await page.locator(".tt-screen").boundingBox();
+    const nav = await page.locator(".tt-nav").boundingBox();
+    const top = await page.locator(".tt-topnav").boundingBox();
+    const cta = await page.locator(".tt-cta").boundingBox();
+    expect(Math.round(screen.height)).toBe(569);
+    expect(Math.round(nav.y)).toBe(569);
+    expect(Math.round(nav.y + nav.height)).toBe(623);
+    expect(top.y).toBeGreaterThanOrEqual(0);
+    expect(cta.y + cta.height).toBeLessThanOrEqual(screen.y + screen.height);
   });
 
   test("google: description row hidden when empty, shown when set", async ({ page }) => {
@@ -214,6 +277,13 @@ test.describe("platform renderers", () => {
     expect(await page.locator(".yt-ad-badge").count()).toBe(0);
   });
 
+  test("youtube shorts: counts=0 hides numbers and keeps rail icons and text actions", async ({ page }) => {
+    await page.goto(PAGE + "?platform=youtube&placement=shorts&counts=0");
+    await expect(page.locator(".yts-rail-count")).toHaveText(["Dislike", "Share"]);
+    await expect(page.locator(".yts-rail-item")).toHaveCount(4);
+    await expect(page.locator(".yts-rail-item svg")).toHaveCount(4);
+  });
+
   test("youtube desktop: watch-page in-stream ad chrome (Ad chip, Skip, companion CTA, light theme)", async ({ page }) => {
     await page.goto(PAGE + "?platform=youtube&placement=desktop&business=Acme%20Skin%20Co." +
       "&headline=The%2030-day%20results&cta=Visit%20site&domain=shop.acme.com&views=74.1K");
@@ -227,6 +297,14 @@ test.describe("platform renderers", () => {
     await expect(page.locator(".ytd-title")).toContainText("The 30-day results");
     await expect(page.locator(".ytd-subscribe")).toHaveText("Subscribe");
     await expect(page.locator(".ytd-chan-subs")).toContainText("74.1K subscribers");
+  });
+
+  test("youtube desktop: counts=0 hides like count and subscribers line", async ({ page }) => {
+    await page.goto(PAGE + "?platform=youtube&placement=desktop&counts=0");
+    await expect(page.locator(".ytd-like-count")).toHaveCount(0);
+    await expect(page.locator(".ytd-chan-subs")).toHaveCount(0);
+    await expect(page.locator(".ytd-like svg")).toHaveCount(2);
+    await expect(page.locator(".ytd-subscribe")).toBeVisible();
   });
 
   /* the real-duration path (badge/clock/scrubber fed by <video> metadata) needs
