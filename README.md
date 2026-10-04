@@ -47,6 +47,7 @@ Empty values are ignored (safe for Bubble expressions that resolve empty).
 | `format` | `video` \| `image` \| `carousel` | `image` |
 | `creator` | display name | `Creator Name` |
 | `handle` | handle, no `@` | derived from `creator` |
+| `byline` | `handle` \| `name` - TikTok account line shows `@handle` or the `creator` display name without `@`; `name` wins even when `handle` is set | `handle` |
 | `avatar` | image URL | initials circle (color hashed from name) |
 | `copy` | primary text / caption | platform-appropriate sample |
 | `headline` | link-card / card headline (Google clamps at 40 chars, YouTube at 2 lines) | sample |
@@ -57,6 +58,7 @@ Empty values are ignored (safe for Bubble expressions that resolve empty).
 | `media` | media URL(s). Carousel: repeat the param (`media=a&media=b`) **or** pipe-separate one value (`media=a\|b\|c`). Never comma-separate. Video: first URL is the video file | placeholder tile |
 | `poster` | video thumbnail URL | placeholder |
 | `likes` / `comments` / `shares` / `views` | display strings (`1.2K` fine) | plausible defaults |
+| `counts` | `1`/`0` - `0` hides engagement numbers and the Facebook feed counts row | `1` |
 | `verified` | `1`/`0` — blue check (FB/TikTok) | `0` |
 | `autoplay` | `1`/`0` — `0` shows tap-to-play overlay | `1` (YouTube: `0`) |
 | `ratio` | media aspect, e.g. `1:1`, `4:5`, `1.91:1`, `16:9` | FB `1:1`, TikTok `9:16`, Google `1.91:1`, YT `16:9`, Pinterest `2:3` |
@@ -77,7 +79,7 @@ OpenAPI tool (Swagger UI, Redoc, a client generator) to explore or build request
 openapi: 3.1.0
 info:
   title: Props Ad Mockup Renderer
-  version: 1.2.0
+  version: 1.5.0
   description: >
     Self-contained HTML renderer for social ad-placement mockups. No server, no
     build, no JSON — a GET with a query string returns a rendered preview. Params
@@ -116,6 +118,10 @@ paths:
           in: query
           description: Handle without '@'. Defaults to a slug derived from creator.
           schema: { type: string }
+        - name: byline
+          in: query
+          description: TikTok account line. Name shows creator without '@' even when handle is set. Invalid values use handle.
+          schema: { type: string, enum: [handle, name], default: handle }
         - name: avatar
           in: query
           description: Avatar URL (https or data:image only). Falls back to an initials circle.
@@ -172,6 +178,10 @@ paths:
           in: query
           description: Also the subscriber count on the YouTube desktop placement.
           schema: { type: string, default: "12K" }
+        - name: counts
+          in: query
+          description: Hide engagement numbers and the Facebook feed counts row when false. Accepts 1/0 or true/false.
+          schema: { type: boolean, default: true }
         - name: verified
           in: query
           description: Blue check (Facebook / TikTok). Accepts 1/0 or true/false.

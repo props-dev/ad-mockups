@@ -4,6 +4,15 @@ Versions track the `VERSION` const in `v1/ad-mockup.html` (mirrored in the
 `ad-mockup-version` meta tag). Param changes within `v1/` are additive-only;
 breaking changes ship as a new `v2/` directory.
 
+## 1.5.0 - 2026-10-04
+
+- Add `counts=0` to hide engagement numbers on TikTok, YouTube Shorts, and
+  YouTube desktop, including the desktop subscribers line, and the Facebook feed
+  counts row. Icons and actions remain visible.
+- Add `byline=name` to show the creator display name without `@` on TikTok,
+  even when an explicit handle is supplied. Invalid values use the handle.
+- Defaults are unchanged: `counts=1` and `byline=handle` preserve existing URLs.
+
 ## 1.3.0 — 2026-07-10
 
 - YouTube duration chrome is now real, read from the `<video>` element's metadata

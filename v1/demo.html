@@ -130,6 +130,9 @@ requests). Each cell shows the exact URL that produces it.</p>
   cases.push({ label: "tiktok / long caption (See more @70ch)",
     p: merge(CREATOR, COPYSET, { platform: "tiktok", format: "image",
       media: IMG("ttlong", 720, 1280), copy: LONG_COPY }) });
+  cases.push({ label: "tiktok / no counts, display name with spaces",
+    p: { platform: "tiktok", creator: "Joanie Sprague", counts: "0", byline: "name",
+      format: "image", media: IMG("ttnocounts", 720, 1280) } });
   cases.push({ label: "google / protocol-relative URL (//picsum...)",
     p: merge(CREATOR, COPYSET, { platform: "google", format: "image",
       media: "//picsum.photos/seed/protorel/800/420" }) });

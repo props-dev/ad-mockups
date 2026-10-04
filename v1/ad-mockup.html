@@ -8,7 +8,7 @@
      object/fetch even if an escaping bug slipped through. script-src must stay
      'unsafe-inline' because the whole app is the inline script below. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src https: data:; media-src https:; base-uri 'none'; form-action 'none'">
-<meta name="ad-mockup-version" content="1.3.0">
+<meta name="ad-mockup-version" content="1.5.0">
 <title>Ad Preview</title>
 <style>
   /* ============ base ============ */
@@ -200,6 +200,7 @@
     display: flex; align-items: center; justify-content: center; }
   .tt-follow svg { width: 9px; height: 9px; fill: #fff; }
   .tt-rail-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .tt-rail.no-counts .tt-rail-item { min-height: 47px; }
   .tt-rail-item svg { width: 30px; height: 30px; fill: #fff;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
   .tt-rail-count { font-size: 12px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
@@ -312,6 +313,7 @@
   .yts-rail { position: absolute; right: 8px; bottom: 96px; z-index: 4;
     display: flex; flex-direction: column; align-items: center; gap: 20px; }
   .yts-rail-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .yts-rail.no-counts .yts-rail-item { min-height: 48px; }
   .yts-rail-item svg { width: 30px; height: 30px; fill: #fff;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
   .yts-rail-count { font-size: 12px; font-weight: 500; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
@@ -415,6 +417,7 @@ window.AD_MOCKUP_PARAMS = {
   // format: "image",                   // video | image | carousel
   // creator: "Jess Reviews",
   // handle: "jessreviews",
+  // byline: "handle",                 // handle | name; name shows creator without @ on TikTok
   // avatar: "https://cdn.bubble.io/....png",
   // copy: "Primary text / caption",    // Bubble: copy: Episode's Ad Copy:formatted as JSON-safe,
   // headline: "Headline",
@@ -425,6 +428,7 @@ window.AD_MOCKUP_PARAMS = {
   // media: "url1|url2|url3",           // pipe-separated for carousel (never commas)
   // poster: "https://.../thumb.jpg",   // video thumbnail
   // likes: "1.2K", comments: "84", shares: "23", views: "12K",
+  // counts: "1",                     // 0 = hide engagement numbers
   // verified: "1",                     // blue check (facebook / tiktok)
   // autoplay: "1",                     // 0 = show tap-to-play overlay instead
   // ratio: "1:1",                      // media aspect, e.g. 1:1, 4:5, 1.91:1, 16:9
@@ -439,7 +443,7 @@ window.AD_MOCKUP_PARAMS = {
 
   /* Bump on any change; keep in sync with the ad-mockup-version meta tag.
      Param changes must be additive-only — Bubble pages depend on this contract. */
-  var VERSION = "1.3.0";
+  var VERSION = "1.5.0";
 
   /* ---------------- defaults ---------------- */
   var COMMON = {
@@ -447,6 +451,7 @@ window.AD_MOCKUP_PARAMS = {
     format: "image",
     creator: "Creator Name",
     handle: "",
+    byline: "handle",
     avatar: "",
     copy: "",
     headline: "See why everyone is talking about this",
@@ -460,6 +465,7 @@ window.AD_MOCKUP_PARAMS = {
     comments: "84",
     shares: "23",
     views: "12K",
+    counts: "1",
     verified: "0",
     autoplay: "1",
     ratio: ""
@@ -553,6 +559,9 @@ window.AD_MOCKUP_PARAMS = {
     p.placement = allowedPlacements.indexOf(reqPlacement) >= 0 ? reqPlacement : allowedPlacements[0];
     if (isBlank(p.handle)) p.handle = String(p.creator).toLowerCase().replace(/[^a-z0-9._]/g, "");
     if (isBlank(p.business)) p.business = p.creator;
+    p.byline = String(p.byline).toLowerCase().trim();
+    if (["handle", "name"].indexOf(p.byline) < 0) p.byline = "handle";
+    p.counts = boolish(p.counts);
     p.verified = boolish(p.verified);
     p.autoplay = boolish(p.autoplay);
     return p;
@@ -728,11 +737,11 @@ window.AD_MOCKUP_PARAMS = {
         '<div class="fb-headline">' + esc(p.headline) + '</div>' +
         (isBlank(p.description) ? "" : '<div class="fb-desc">' + esc(p.description) + '</div>') +
       '</div><button class="fb-cta">' + esc(p.cta) + '</button></div>' +
-      '<div class="fb-counts"><div class="fb-rxns"><span class="fb-rxn-stack">' +
+      (p.counts ? '<div class="fb-counts"><div class="fb-rxns"><span class="fb-rxn-stack">' +
         '<span class="fb-rxn like">' + I.thumb + '</span>' +
         '<span class="fb-rxn love">' + I.heart + '</span></span>' +
         '<span>' + esc(p.likes) + '</span></div>' +
-        '<div>' + esc(p.comments) + ' comments &middot; ' + esc(p.shares) + ' shares</div></div>' +
+        '<div>' + esc(p.comments) + ' comments &middot; ' + esc(p.shares) + ' shares</div></div>' : '') +
       '<div class="fb-actions">' +
         '<button class="fb-action">' + I.thumb + 'Like</button>' +
         '<button class="fb-action">' + I.comment + 'Comment</button>' +
@@ -768,16 +777,17 @@ window.AD_MOCKUP_PARAMS = {
       '<div class="tt-topnav"><span class="tt-live">LIVE</span>' +
         '<span class="tt-tab">Following</span><span class="tt-tab active">For You</span>' +
         '<span class="tt-search">' + I.search + '</span></div>' +
-      '<div class="tt-rail">' +
+      '<div class="tt-rail' + (p.counts ? '' : ' no-counts') + '">' +
         '<div class="tt-rail-avatar">' + avatarHtml(p) +
           '<span class="tt-follow">' + I.plus + '</span></div>' +
-        '<div class="tt-rail-item">' + I.heart + '<span class="tt-rail-count">' + esc(p.likes) + '</span></div>' +
-        '<div class="tt-rail-item">' + I.comment + '<span class="tt-rail-count">' + esc(p.comments) + '</span></div>' +
-        '<div class="tt-rail-item">' + I.bookmark + '<span class="tt-rail-count">' + esc(p.views) + '</span></div>' +
-        '<div class="tt-rail-item">' + I.share + '<span class="tt-rail-count">' + esc(p.shares) + '</span></div>' +
+        '<div class="tt-rail-item">' + I.heart + (p.counts ? '<span class="tt-rail-count">' + esc(p.likes) + '</span>' : '') + '</div>' +
+        '<div class="tt-rail-item">' + I.comment + (p.counts ? '<span class="tt-rail-count">' + esc(p.comments) + '</span>' : '') + '</div>' +
+        '<div class="tt-rail-item">' + I.bookmark + (p.counts ? '<span class="tt-rail-count">' + esc(p.views) + '</span>' : '') + '</div>' +
+        '<div class="tt-rail-item">' + I.share + (p.counts ? '<span class="tt-rail-count">' + esc(p.shares) + '</span>' : '') + '</div>' +
         '<div class="tt-disc">' + avatarHtml(p) + '</div></div>' +
       '<div class="tt-bottom">' +
-        '<div class="tt-handle">@' + esc(p.handle) + (p.verified ? verifiedBadge : "") + '</div>' +
+        '<div class="tt-handle">' + (p.byline === "name" ? esc(p.creator) : '@' + esc(p.handle)) +
+          (p.verified ? verifiedBadge : "") + '</div>' +
         '<div class="tt-caption">' + copyHtml(p.copy, 70) + '</div>' +
         '<div class="tt-sponsored">' + I.info + 'Sponsored</div>' +
         '<div class="tt-music">' + I.note + '<span>' + esc(p.creator) + ' &middot; Original audio</span></div>' +
@@ -826,13 +836,13 @@ window.AD_MOCKUP_PARAMS = {
   function renderYouTubeShorts(p) {
     return '<div class="yts">' +
       mediaHtml(p, { dark: true, fill: true }) +
-      '<div class="yts-rail">' +
+      '<div class="yts-rail' + (p.counts ? '' : ' no-counts') + '">' +
         '<div class="yts-rail-item">' + I.thumb +
-          '<span class="yts-rail-count">' + esc(p.likes) + '</span></div>' +
+          (p.counts ? '<span class="yts-rail-count">' + esc(p.likes) + '</span>' : '') + '</div>' +
         '<div class="yts-rail-item"><span class="yts-flip">' + I.thumb + '</span>' +
           '<span class="yts-rail-count">Dislike</span></div>' +
         '<div class="yts-rail-item">' + I.comment +
-          '<span class="yts-rail-count">' + esc(p.comments) + '</span></div>' +
+          (p.counts ? '<span class="yts-rail-count">' + esc(p.comments) + '</span>' : '') + '</div>' +
         '<div class="yts-rail-item">' + I.share +
           '<span class="yts-rail-count">Share</span></div>' +
         '<div class="yts-disc">' + avatarHtml(p) + '</div></div>' +
@@ -869,11 +879,11 @@ window.AD_MOCKUP_PARAMS = {
       '<div class="ytd-meta">' +
         '<div class="ytd-chan">' + avatarHtml(p) +
           '<div><div class="ytd-chan-name">' + esc(p.business) + '</div>' +
-          '<div class="ytd-chan-subs">' + esc(p.views) + ' subscribers</div></div>' +
+          (p.counts ? '<div class="ytd-chan-subs">' + esc(p.views) + ' subscribers</div>' : '') + '</div>' +
           '<button class="ytd-subscribe">Subscribe</button></div>' +
         '<div class="ytd-actions">' +
           '<span class="ytd-like"><span class="ytd-like-btn">' + I.thumb +
-            '<span class="ytd-like-count">' + esc(p.likes) + '</span></span>' +
+            (p.counts ? '<span class="ytd-like-count">' + esc(p.likes) + '</span>' : '') + '</span>' +
             '<span class="ytd-div"></span><span class="ytd-flip">' + I.thumb + '</span></span>' +
           '<button class="ytd-action">' + I.share + 'Share</button>' +
           '<button class="ytd-action">' + I.download + 'Save</button></div>' +
