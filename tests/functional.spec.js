@@ -232,6 +232,27 @@ test.describe("platform renderers", () => {
     await expect(page.locator(".tt-handle")).toHaveText("@joaniesprague");
   });
 
+  test("tiktok: nav is off by default", async ({ page }) => {
+    await page.goto(PAGE + "?platform=tiktok");
+    await expect(page.locator(".tt-nav")).toHaveCount(0);
+    await expect(page.locator(".tt-screen")).toHaveCount(0);
+  });
+
+  test("tiktok: nav=1 adds the tab bar below the screen and keeps the whole ad in view", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 623 });
+    await page.goto(PAGE + "?platform=tiktok&nav=1&cta=Learn%20more");
+    await expect(page.locator(".tt-nav-item")).toHaveText(["Home", "Friends", "", "Inbox", "Profile"]);
+    const screen = await page.locator(".tt-screen").boundingBox();
+    const nav = await page.locator(".tt-nav").boundingBox();
+    const top = await page.locator(".tt-topnav").boundingBox();
+    const cta = await page.locator(".tt-cta").boundingBox();
+    expect(Math.round(screen.height)).toBe(569);
+    expect(Math.round(nav.y)).toBe(569);
+    expect(Math.round(nav.y + nav.height)).toBe(623);
+    expect(top.y).toBeGreaterThanOrEqual(0);
+    expect(cta.y + cta.height).toBeLessThanOrEqual(screen.y + screen.height);
+  });
+
   test("google: description row hidden when empty, shown when set", async ({ page }) => {
     await page.goto(PAGE + "?platform=google");
     expect(await page.locator(".gg-desc").count()).toBe(0);

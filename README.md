@@ -59,6 +59,7 @@ Empty values are ignored (safe for Bubble expressions that resolve empty).
 | `poster` | video thumbnail URL | placeholder |
 | `likes` / `comments` / `shares` / `views` | display strings (`1.2K` fine) | plausible defaults |
 | `counts` | `1`/`0` - `0` hides engagement numbers and the Facebook feed counts row | `1` |
+| `nav` | `1`/`0` - `1` adds the app's bottom tab bar under the screen (TikTok in-feed); the video area shrinks by the bar's 54px | `0` |
 | `verified` | `1`/`0` — blue check (FB/TikTok) | `0` |
 | `autoplay` | `1`/`0` — `0` shows tap-to-play overlay | `1` (YouTube: `0`) |
 | `ratio` | media aspect, e.g. `1:1`, `4:5`, `1.91:1`, `16:9` | FB `1:1`, TikTok `9:16`, Google `1.91:1`, YT `16:9`, Pinterest `2:3` |
@@ -182,6 +183,10 @@ paths:
           in: query
           description: Hide engagement numbers and the Facebook feed counts row when false. Accepts 1/0 or true/false.
           schema: { type: boolean, default: true }
+        - name: nav
+          in: query
+          description: Show the app's bottom tab bar under the screen (TikTok in-feed). The bar is 54px tall and the video area shrinks by that much. Accepts 1/0 or true/false.
+          schema: { type: boolean, default: false }
         - name: verified
           in: query
           description: Blue check (Facebook / TikTok). Accepts 1/0 or true/false.

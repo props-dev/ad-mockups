@@ -11,7 +11,11 @@ breaking changes ship as a new `v2/` directory.
   counts row. Icons and actions remain visible.
 - Add `byline=name` to show the creator display name without `@` on TikTok,
   even when an explicit handle is supplied. Invalid values use the handle.
-- Defaults are unchanged: `counts=1` and `byline=handle` preserve existing URLs.
+- Add `nav=1` to show the TikTok bottom tab bar (Home, Friends, create,
+  Inbox, Profile) under the screen. The bar is 54px tall; the video area
+  shrinks by that much, so a 9:16 screen needs a frame 54px taller.
+- Defaults are unchanged: `counts=1`, `byline=handle` and `nav=0` preserve
+  existing URLs.
 
 ## 1.3.0 — 2026-07-10
 
