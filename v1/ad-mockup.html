@@ -8,7 +8,7 @@
      object/fetch even if an escaping bug slipped through. script-src must stay
      'unsafe-inline' because the whole app is the inline script below. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src https: data:; media-src https:; base-uri 'none'; form-action 'none'">
-<meta name="ad-mockup-version" content="1.5.0">
+<meta name="ad-mockup-version" content="1.5.1">
 <title>Ad Preview</title>
 <style>
   /* ============ base ============ */
@@ -456,7 +456,7 @@ window.AD_MOCKUP_PARAMS = {
 
   /* Bump on any change; keep in sync with the ad-mockup-version meta tag.
      Param changes must be additive-only — Bubble pages depend on this contract. */
-  var VERSION = "1.5.0";
+  var VERSION = "1.5.1";
 
   /* ---------------- defaults ---------------- */
   var COMMON = {
@@ -1067,8 +1067,11 @@ window.AD_MOCKUP_PARAMS = {
   if ("ResizeObserver" in window) new ResizeObserver(postHeight).observe(document.body);
   postHeight();
 
-  /* accept live param updates without a reload (avoids Bubble re-render flicker) */
+  /* accept live param updates without a reload (avoids Bubble re-render flicker).
+     Only the embedding parent (or this window itself) may send them; messages from
+     sibling frames, popups, or openers are ignored so they can't spoof the preview. */
   window.addEventListener("message", function (ev) {
+    if (ev.source !== window.parent && ev.source !== window) return;
     var d = ev.data;
     if (!d || d.type !== "ad-mockup:params" || typeof d.params !== "object") return;
     window.AD_MOCKUP_PARAMS = Object.assign({}, window.AD_MOCKUP_PARAMS, d.params);

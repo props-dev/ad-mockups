@@ -51,7 +51,8 @@ test.describe("contract: param precedence", () => {
   test("postMessage param updates re-render without a reload", async ({ page }) => {
     await page.goto(PAGE);
     await page.evaluate(() => {
-      window.postMessage({ type: "ad-mockup:params", params: { creator: "Live Update" } }, "*");
+      window.postMessage({ type: "ad-mockup:params", params: { creator: "Live Update" } },
+        location.origin);
     });
     await expect(page.locator(".fb-name")).toContainText("Live Update");
   });
@@ -62,7 +63,7 @@ test.describe("contract: param precedence", () => {
       window.postMessage({ type: "ad-mockup:params", params: {
         platform: "tiktok", creator: "Joanie Sprague", handle: "unverified.handle",
         counts: "0", byline: "name"
-      } }, "*");
+      } }, location.origin);
     });
     await expect(page.locator(".tt-handle")).toHaveText("Joanie Sprague");
     await expect(page.locator(".tt-rail-count")).toHaveCount(0);
@@ -79,6 +80,31 @@ test.describe("security", () => {
     expect(await page.evaluate(() => window.__pwned)).toBeUndefined();
     // the payload must not have created a real element
     expect(await page.locator(".fb-copy img").count()).toBe(0);
+  });
+
+  test("param messages are applied only from the embedding parent", async ({ page }) => {
+    // Host page with the mockup iframe plus a sibling frame that tries to drive it.
+    await page.route("**/__host.html", (route) => route.fulfill({
+      contentType: "text/html",
+      body: '<iframe id="mock" src="' + PAGE + '"></iframe>',
+    }));
+    await page.goto("/__host.html");
+    const mock = page.frameLocator("#mock");
+    await expect(mock.locator(".fb-name")).toContainText("Creator Name");
+
+    await page.evaluate(() => new Promise((resolve) => {
+      const sib = document.createElement("iframe");
+      sib.onload = resolve;
+      sib.srcdoc = "<script>parent.frames[0].postMessage({ type: 'ad-mockup:params', " +
+        "params: { creator: 'Spoofed' } }, '*');<\/script>";
+      document.body.appendChild(sib);
+    }));
+    await page.evaluate(() => {
+      document.getElementById("mock").contentWindow.postMessage(
+        { type: "ad-mockup:params", params: { headline: "From Parent" } }, location.origin);
+    });
+    await expect(mock.locator(".fb-headline")).toContainText("From Parent");
+    await expect(mock.locator(".fb-name")).toContainText("Creator Name");
   });
 
   test("protocol-relative media URLs normalize to https", async ({ page }) => {

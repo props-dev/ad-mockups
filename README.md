@@ -80,7 +80,7 @@ OpenAPI tool (Swagger UI, Redoc, a client generator) to explore or build request
 openapi: 3.1.0
 info:
   title: Props Ad Mockup Renderer
-  version: 1.5.0
+  version: 1.5.1
   description: >
     Self-contained HTML renderer for social ad-placement mockups. No server, no
     build, no JSON — a GET with a query string returns a rendered preview. Params
@@ -214,6 +214,8 @@ paths:
   `ResizeObserver`) so the host can auto-size the iframe.
 - **Accepts** `{ type: "ad-mockup:params", params }` — merges `params` (same keys as the
   query params) and re-renders in place with no reload (see Pattern C below).
+  Only messages from the embedding parent window (or the page itself) are applied;
+  ones from sibling frames, popups, or openers are ignored.
 
 ## Bubble integration
 
@@ -275,8 +277,14 @@ The page listens for messages, so a hosted iframe can update without a reload
 
 ```js
 document.querySelector("#ad-preview iframe").contentWindow.postMessage(
-  { type: "ad-mockup:params", params: { copy: "New copy", format: "image" } }, "*");
+  { type: "ad-mockup:params", params: { copy: "New copy", format: "image" } },
+  "https://props-dev.github.io");
 ```
+
+Pass the renderer's origin as the second argument rather than `"*"`, so the params
+(client ad copy and creative URLs) are only delivered if the iframe is still showing
+the mockup. Send from the page that embeds the iframe: the mockup ignores messages
+from any other window.
 
 The page also broadcasts `{ type: "ad-mockup:height", height, version }` on every
 resize for auto-sizing embeds.
