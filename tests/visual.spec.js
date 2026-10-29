@@ -85,6 +85,22 @@ for (const [platform, placement, height] of META) {
   }
 }
 
+/* Real (data-URI) media in the new layouts, so carousel chrome is covered too. */
+const PX_RED =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+const PX_BLUE =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+for (const [platform, placement, height] of [["instagram", "feed", 700], ["facebook", "reels", 667]]) {
+  test(`${platform}-${placement} / carousel with media`, async ({ page }) => {
+    await page.setViewportSize({ width: 375, height });
+    await page.goto(
+      `${PAGE}?platform=${platform}&placement=${placement}&format=carousel&creator=Jess%20Rivera` +
+        `&handle=jess.reviews&media=${encodeURIComponent(PX_RED + "|" + PX_BLUE)}`
+    );
+    await expect(page).toHaveScreenshot(`${platform}-${placement}-carousel-media.png`);
+  });
+}
+
 test("facebook / no params (pure defaults)", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 700 });
   await page.goto(PAGE);

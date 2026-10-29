@@ -17,7 +17,9 @@ breaking changes ship as a new `v2/` directory.
   still shows `views`, so existing URLs render as before.
 - Add `omit`: a comma- or pipe-separated list of fields the source does not
   have (`likes`, `comments`, `shares`, `saves`, `domain`, `description`). Each
-  is left out of the mockup instead of showing a plausible default.
+  is left out of the mockup instead of showing a plausible default. Applies to
+  every renderer that draws the field (Facebook, Instagram, TikTok, Google,
+  YouTube).
 - `byline=name` also applies to the Instagram username.
 - Existing placements render identically; all prior visual baselines pass
   unchanged.

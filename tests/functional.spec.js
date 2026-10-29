@@ -435,6 +435,55 @@ test.describe("platform renderers", () => {
     await expect(page.locator(".vx-rail-count")).toHaveText(["84", "23"]);
   });
 
+  test("instagram feed carousel: real media gets dots and counter that advance", async ({ page }) => {
+    await page.goto(PAGE + "?platform=instagram&format=carousel&media=" + encodeURIComponent(PX_RED + "|" + PX_BLUE));
+    await expect(page.locator(".ig .car-item")).toHaveCount(2);
+    await expect(page.locator(".ig .car-counter")).toHaveText("1/2");
+    await page.locator(".ig .car-arrow.next").click();
+    await expect(page.locator(".ig .car-counter")).toHaveText("2/2");
+  });
+
+  test("facebook instream: Ad chip counts down the video's real remaining time", async ({ page }) => {
+    await page.route((url) => url.hostname === "cdn.example.com", (route) => route.abort());
+    await page.goto(PAGE + "?platform=facebook&placement=instream&format=video&media=" +
+      encodeURIComponent("https://cdn.example.com/ad.mp4"));
+    await expect(page.locator(".js-fbi-left")).toHaveText("0:15");
+    await page.evaluate(() => {
+      const video = document.querySelector(".fbi .js-video");
+      Object.defineProperty(video, "duration", { value: 30 });
+      Object.defineProperty(video, "currentTime", { value: 10 });
+      video.dispatchEvent(new Event("timeupdate"));
+    });
+    await expect(page.locator(".js-fbi-left")).toHaveText("0:20");
+    const width = await page.locator(".js-fbi-fill").evaluate((el) => el.style.width);
+    expect(width).toBe("33.33%");
+  });
+
+  test("reels: an expanded long caption scrolls and keeps the account row on screen", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    const copy = encodeURIComponent(LONG_COPY.repeat(12));
+    for (const platform of ["facebook", "instagram"]) {
+      await page.goto(PAGE + `?platform=${platform}&placement=reels&copy=${copy}`);
+      await page.locator(".vx-copy .js-see-more").click();
+      const id = await page.locator(".vx-id").boundingBox();
+      expect(id.y).toBeGreaterThanOrEqual(0);
+      const copyBox = await page.locator(".vx-copy").boundingBox();
+      expect(copyBox.height).toBeLessThanOrEqual(667 * 0.38 + 1);
+    }
+  });
+
+  test("omit also applies to Google and YouTube fields", async ({ page }) => {
+    await page.goto(PAGE + "?platform=google&description=DETAIL&omit=description");
+    await expect(page.locator(".gg-desc")).toHaveCount(0);
+    await page.goto(PAGE + "?platform=youtube&description=DETAIL&omit=description");
+    await expect(page.locator(".yt-desc")).toHaveCount(0);
+    await page.goto(PAGE + "?platform=youtube&placement=shorts&omit=likes");
+    await expect(page.locator(".yts-rail-count")).toHaveText(["Dislike", "84", "Share"]);
+    await page.goto(PAGE + "?platform=youtube&placement=desktop&omit=domain,likes");
+    await expect(page.locator(".ytd-companion-sub")).toHaveCount(0);
+    await expect(page.locator(".ytd-like-count")).toHaveCount(0);
+  });
+
   test("pinterest: Save button and business falls back to creator", async ({ page }) => {
     await page.goto(PAGE + "?platform=pinterest&creator=Jess");
     await expect(page.locator(".pin-save")).toHaveText("Save");
