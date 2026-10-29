@@ -11,6 +11,12 @@ control platform, format, creator, ad copy, and media.
 |---|---|
 | `facebook` | Mobile feed sponsored post (header, primary text, media, link card + CTA, reactions, action bar) |
 | `facebook` + `placement=story` | Story ad (full-bleed 9:16, segmented progress bar, Sponsored header, swipe-up chevron + CTA pill) — dark theme |
+| `facebook` + `placement=reels` | Reels ad (full-bleed 9:16, like/comment/share rail, page row with Follow, caption, CTA that turns FB blue) — dark theme |
+| `facebook` + `placement=instream` | In-stream video ad (16:9 player with `Ad · m:ss` countdown read from the video, progress bar, attachment row with page, headline, domain and CTA; the host video and post are neutral skeleton) |
+| `facebook` + `placement=marketplace` | Marketplace sponsored tile (1:1 media, headline, `Sponsored · page`, CTA link) in the Today's picks grid; neighbouring listings are skeleton |
+| `instagram` | Feed ad (username + Sponsored header, media, CTA strip that turns IG blue, heart/comment/send/save row, likes, caption with "more", comments link) |
+| `instagram` + `placement=reels` | Reels ad (full-bleed 9:16, outline heart/comment/send rail with audio tile, username row with Follow, caption, Original audio line, CTA) — dark theme |
+| `instagram` + `placement=story` | Story ad (full-bleed 9:16, progress bar, username + Sponsored header, caption, chevron + white link CTA pill) — dark theme |
 | `tiktok` | In-feed ad (full-bleed 9:16, action rail, caption + Sponsored label, CTA banner) — dark theme |
 | `google` | Demand Gen / Discover feed card (media, headline, Sponsored source row, CTA chip) |
 | `youtube` | In-feed ad unit (thumbnail + Ad badge, headline, Sponsored · channel row, CTA) |
@@ -42,27 +48,29 @@ Empty values are ignored (safe for Bubble expressions that resolve empty).
 
 | Param | Values | Default |
 |---|---|---|
-| `platform` | `facebook` \| `tiktok` \| `google` \| `youtube` \| `pinterest` | `facebook` |
-| `placement` | Surface within a platform. Facebook: `feed` \| `story`. YouTube: `feed` \| `shorts` \| `desktop`. Other platforms only have `feed`. Values not valid for the platform fall back to `feed`, so it's always safe to pass | `feed` |
+| `platform` | `facebook` \| `instagram` \| `tiktok` \| `google` \| `youtube` \| `pinterest` | `facebook` |
+| `placement` | Surface within a platform. Facebook: `feed` \| `story` \| `reels` \| `instream` \| `marketplace`. Instagram: `feed` \| `reels` \| `story`. YouTube: `feed` \| `shorts` \| `desktop`. Other platforms only have `feed`. Values not valid for the platform fall back to `feed`, so it's always safe to pass | `feed` |
 | `format` | `video` \| `image` \| `carousel` | `image` |
 | `creator` | display name | `Creator Name` |
 | `handle` | handle, no `@` | derived from `creator` |
-| `byline` | `handle` \| `name` - TikTok account line shows `@handle` or the `creator` display name without `@`; `name` wins even when `handle` is set | `handle` |
+| `byline` | `handle` \| `name` - TikTok account line shows `@handle` or the `creator` display name without `@`; Instagram shows the username or the `creator` name. `name` wins even when `handle` is set | `handle` |
 | `avatar` | image URL | initials circle (color hashed from name) |
 | `copy` | primary text / caption | platform-appropriate sample |
 | `headline` | link-card / card headline (Google clamps at 40 chars, YouTube at 2 lines) | sample |
 | `description` | secondary line — row is hidden when empty | empty |
-| `cta` | button label | FB `Learn More`, TikTok `Shop now`, Google `Shop now`, YT `Visit site` |
+| `cta` | button label | FB `Learn More`, Instagram `Learn more`, TikTok `Shop now`, Google `Shop now`, YT `Visit site` |
 | `domain` | display link (FB link card) | `props.co` |
 | `business` | Google business name / YouTube channel / Pinterest advertiser | falls back to `creator` |
 | `media` | media URL(s). Carousel: repeat the param (`media=a&media=b`) **or** pipe-separate one value (`media=a\|b\|c`). Never comma-separate. Video: first URL is the video file | placeholder tile |
 | `poster` | video thumbnail URL | placeholder |
-| `likes` / `comments` / `shares` / `views` | display strings (`1.2K` fine) | plausible defaults |
+| `likes` / `comments` / `shares` / `views` | display strings (`1.2K` fine). Instagram feed drops the likes or comments line when its value is `0` | plausible defaults |
+| `saves` | TikTok bookmark count. When empty the bookmark shows `views`, as before 1.6.0 | empty |
 | `counts` | `1`/`0` - `0` hides engagement numbers and the Facebook feed counts row | `1` |
+| `omit` | comma- or pipe-separated fields the source does not have: `likes`, `comments`, `shares`, `saves`, `domain`, `description`. Each is left out of the mockup (its icon stays) instead of showing a default | empty |
 | `nav` | `1`/`0` - `1` adds the app's bottom tab bar under the screen (TikTok in-feed); the video area shrinks by the bar's 54px | `0` |
-| `verified` | `1`/`0` — blue check (FB/TikTok) | `0` |
+| `verified` | `1`/`0` — blue check (FB/Instagram/TikTok) | `0` |
 | `autoplay` | `1`/`0` — `0` shows tap-to-play overlay | `1` (YouTube: `0`) |
-| `ratio` | media aspect, e.g. `1:1`, `4:5`, `1.91:1`, `16:9` | FB `1:1`, TikTok `9:16`, Google `1.91:1`, YT `16:9`, Pinterest `2:3` |
+| `ratio` | media aspect, e.g. `1:1`, `4:5`, `1.91:1`, `16:9` | FB `1:1`, Instagram `1:1`, TikTok `9:16`, Google `1.91:1`, YT `16:9`, Pinterest `2:3` |
 
 URL handling: protocol-relative Bubble CDN URLs (`//cdn.bubble.io/...`) are normalized to
 `https:` automatically. Only `https:` (and `data:image/`) URLs are accepted. All text
@@ -80,7 +88,7 @@ OpenAPI tool (Swagger UI, Redoc, a client generator) to explore or build request
 openapi: 3.1.0
 info:
   title: Props Ad Mockup Renderer
-  version: 1.5.0
+  version: 1.6.0
   description: >
     Self-contained HTML renderer for social ad-placement mockups. No server, no
     build, no JSON — a GET with a query string returns a rendered preview. Params
@@ -100,14 +108,15 @@ paths:
         - name: platform
           in: query
           description: Which platform's placement to render.
-          schema: { type: string, enum: [facebook, tiktok, google, youtube, pinterest], default: facebook }
+          schema: { type: string, enum: [facebook, instagram, tiktok, google, youtube, pinterest], default: facebook }
         - name: placement
           in: query
           description: >
-            Surface within the platform. facebook: feed | story. youtube:
+            Surface within the platform. facebook: feed | story | reels |
+            instream | marketplace. instagram: feed | reels | story. youtube:
             feed | shorts | desktop. Other platforms only have feed. A value not
             valid for the chosen platform falls back to feed.
-          schema: { type: string, enum: [feed, story, shorts, desktop], default: feed }
+          schema: { type: string, enum: [feed, story, reels, instream, marketplace, shorts, desktop], default: feed }
         - name: format
           in: query
           schema: { type: string, enum: [image, video, carousel], default: image }
@@ -177,19 +186,30 @@ paths:
           schema: { type: string, default: "23" }
         - name: views
           in: query
-          description: Also the subscriber count on the YouTube desktop placement.
+          description: Also the subscriber count on the YouTube desktop placement, and the TikTok bookmark count when saves is empty.
           schema: { type: string, default: "12K" }
+        - name: saves
+          in: query
+          description: TikTok bookmark count. When empty the bookmark shows views.
+          schema: { type: string, default: "" }
         - name: counts
           in: query
           description: Hide engagement numbers and the Facebook feed counts row when false. Accepts 1/0 or true/false.
           schema: { type: boolean, default: true }
+        - name: omit
+          in: query
+          description: >
+            Comma- or pipe-separated fields the source does not have (likes,
+            comments, shares, saves, domain, description). Each is left out of
+            the mockup instead of showing a default; icons stay.
+          schema: { type: string, default: "" }
         - name: nav
           in: query
           description: Show the app's bottom tab bar under the screen (TikTok in-feed). The bar is 54px tall and the video area shrinks by that much. Accepts 1/0 or true/false.
           schema: { type: boolean, default: false }
         - name: verified
           in: query
-          description: Blue check (Facebook / TikTok). Accepts 1/0 or true/false.
+          description: Blue check (Facebook / Instagram / TikTok). Accepts 1/0 or true/false.
           schema: { type: boolean, default: false }
         - name: autoplay
           in: query
@@ -287,6 +307,11 @@ resize for auto-sizing embeds.
 |---|---|---|
 | `facebook` | 375 × 660 | 1:1 media; ~740 tall for `ratio=4:5` |
 | `facebook` story | 375 × 667 | Fills whatever height you give it (9:16 look) |
+| `facebook` reels | 375 × 667 | Fills whatever height you give it (9:16 look) |
+| `facebook` instream | 375 × 440 | 16:9 player plus attachment row; vertical creatives letterbox inside the player |
+| `facebook` marketplace | 375 × 640 | Two-column grid, ad in the first tile |
+| `instagram` | 375 × 700 | 1:1 media; ~790 tall for `ratio=4:5` |
+| `instagram` reels / story | 375 × 667 | Fills whatever height you give it (9:16 look) |
 | `tiktok` | 375 × 667 | Fills whatever height you give it (9:16 look) |
 | `google` | 375 × 440 | Shorter without `description` |
 | `youtube` | 375 × 420 | In-feed card |

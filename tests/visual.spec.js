@@ -62,6 +62,29 @@ for (const format of FORMATS) {
   });
 }
 
+/* Meta placements added in 1.6.0 */
+const META = [
+  ["facebook", "reels", 667],
+  ["facebook", "instream", 440],
+  ["facebook", "marketplace", 640],
+  ["instagram", "feed", 700],
+  ["instagram", "reels", 667],
+  ["instagram", "story", 667],
+];
+for (const [platform, placement, height] of META) {
+  for (const format of FORMATS) {
+    test(`${platform}-${placement} / ${format}`, async ({ page }) => {
+      await page.setViewportSize({ width: 375, height });
+      await page.goto(
+        `${PAGE}?platform=${platform}&placement=${placement}&format=${format}` +
+          "&creator=Jess%20Rivera&handle=jess.reviews&headline=The%2030-day%20results%20speak%20for%20themselves" +
+          "&domain=shop.acme.com&verified=1"
+      );
+      await expect(page).toHaveScreenshot(`${platform}-${placement}-${format}.png`);
+    });
+  }
+}
+
 test("facebook / no params (pure defaults)", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 700 });
   await page.goto(PAGE);
