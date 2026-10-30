@@ -62,9 +62,11 @@ requests). Each cell shows the exact URL that produces it.</p>
   }
 
   var SIZES = { facebook: [375, 660], tiktok: [375, 667], google: [375, 440], youtube: [375, 420],
-    pinterest: [375, 700] };
+    pinterest: [375, 700], instagram: [375, 700] };
   function sizeFor(p) {
-    if (p.placement === "story") return [375, 667];
+    if (p.placement === "story" || p.placement === "reels") return [375, 667];
+    if (p.placement === "instream") return [375, 440];
+    if (p.placement === "marketplace") return [375, 640];
     if (p.platform === "youtube" && p.placement === "shorts") return [375, 667];
     if (p.platform === "youtube" && p.placement === "desktop") return [560, 480];
     return SIZES[p.platform] || [375, 640];
@@ -101,6 +103,23 @@ requests). Each cell shows the exact URL that produces it.</p>
     });
   });
 
+  /* facebook reels / in-stream / marketplace and instagram feed / reels / story (1.6.0) */
+  [["facebook", "reels", 720, 1280], ["facebook", "instream", 1280, 720], ["facebook", "marketplace", 1080, 1080],
+   ["instagram", "feed", 1080, 1080], ["instagram", "reels", 720, 1280], ["instagram", "story", 720, 1280]]
+    .forEach(function (row) {
+      var platform = row[0], placement = row[1], w = row[2], h = row[3], key = platform.slice(0, 2) + placement;
+      ["image", "video", "carousel"].forEach(function (format) {
+        var media = format === "video" ? VIDEO :
+          format === "carousel" ? [IMG(key + "-c1", w, h), IMG(key + "-c2", w, h), IMG(key + "-c3", w, h)] :
+          IMG(key + "-img", w, h);
+        cases.push({
+          label: platform + " " + placement + " / " + format,
+          p: merge(CREATOR, COPYSET, { platform: platform, placement: placement, format: format, media: media },
+            format === "video" ? { poster: IMG(key + "-poster", w, h) } : {})
+        });
+      });
+    });
+
   /* youtube shorts + desktop placements */
   ["image", "video", "carousel"].forEach(function (format) {
     var vertMedia = format === "video" ? VIDEO :
@@ -130,6 +149,15 @@ requests). Each cell shows the exact URL that produces it.</p>
   cases.push({ label: "tiktok / long caption (See more @70ch)",
     p: merge(CREATOR, COPYSET, { platform: "tiktok", format: "image",
       media: IMG("ttlong", 720, 1280), copy: LONG_COPY }) });
+  cases.push({ label: "tiktok / real saves count, omit shares",
+    p: merge(CREATOR, COPYSET, { platform: "tiktok", saves: "1.1K", omit: "shares",
+      format: "image", media: IMG("ttsaves", 720, 1280) }) });
+  cases.push({ label: "facebook / omit domain + description (source has none)",
+    p: merge(CREATOR, COPYSET, { platform: "facebook", omit: "domain,description",
+      format: "image", media: IMG("fbomit") }) });
+  cases.push({ label: "instagram / 0 likes and comments hide their rows",
+    p: merge(CREATOR, COPYSET, { platform: "instagram", likes: "0", comments: "0",
+      format: "image", media: IMG("igzero", 1080, 1080) }) });
   cases.push({ label: "tiktok / no counts, display name with spaces, tab bar",
     p: { platform: "tiktok", creator: "Joanie Sprague", counts: "0", byline: "name", nav: "1",
       format: "image", media: IMG("ttnocounts", 720, 1280) } });

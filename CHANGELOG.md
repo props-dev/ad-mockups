@@ -4,6 +4,27 @@ Versions track the `VERSION` const in `v1/ad-mockup.html` (mirrored in the
 `ad-mockup-version` meta tag). Param changes within `v1/` are additive-only;
 breaking changes ship as a new `v2/` directory.
 
+## 1.6.0 - 2026-10-29
+
+- Add Facebook placements `reels`, `instream` and `marketplace`, and a new
+  `instagram` platform with `feed`, `reels` and `story`. Together with the
+  existing Facebook feed and story they cover the Meta placements that carry
+  most Props spend.
+- In-stream reads the creative's real length for its `Ad · m:ss` countdown and
+  progress bar; until the video's metadata loads, or for a still image, the chip
+  reads just `Ad` and the bar is empty. Neighbouring content (host video, other listings) is drawn as
+  neutral skeleton, never invented.
+- Add `saves` for the TikTok bookmark count. When it is empty the bookmark
+  still shows `views`, so existing URLs render as before.
+- Add `omit`: a comma- or pipe-separated list of fields the source does not
+  have (`likes`, `comments`, `shares`, `saves`, `domain`, `description`). Each
+  is left out of the mockup instead of showing a plausible default. Applies to
+  every renderer that draws the field (Facebook, Instagram, TikTok, Google,
+  YouTube).
+- `byline=name` also applies to the Instagram username.
+- Existing placements render identically; all prior visual baselines pass
+  unchanged.
+
 ## 1.5.0 - 2026-10-04
 
 - Add `counts=0` to hide engagement numbers on TikTok, YouTube Shorts, and

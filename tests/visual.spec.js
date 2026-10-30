@@ -62,6 +62,45 @@ for (const format of FORMATS) {
   });
 }
 
+/* Meta placements added in 1.6.0 */
+const META = [
+  ["facebook", "reels", 667],
+  ["facebook", "instream", 440],
+  ["facebook", "marketplace", 640],
+  ["instagram", "feed", 700],
+  ["instagram", "reels", 667],
+  ["instagram", "story", 667],
+];
+for (const [platform, placement, height] of META) {
+  for (const format of FORMATS) {
+    test(`${platform}-${placement} / ${format}`, async ({ page }) => {
+      await page.setViewportSize({ width: 375, height });
+      await page.goto(
+        `${PAGE}?platform=${platform}&placement=${placement}&format=${format}` +
+          "&creator=Jess%20Rivera&handle=jess.reviews&headline=The%2030-day%20results%20speak%20for%20themselves" +
+          "&domain=shop.acme.com&verified=1"
+      );
+      await expect(page).toHaveScreenshot(`${platform}-${placement}-${format}.png`);
+    });
+  }
+}
+
+/* Real (data-URI) media in the new layouts, so carousel chrome is covered too. */
+const PX_RED =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+const PX_BLUE =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+for (const [platform, placement, height] of [["instagram", "feed", 700], ["facebook", "reels", 667]]) {
+  test(`${platform}-${placement} / carousel with media`, async ({ page }) => {
+    await page.setViewportSize({ width: 375, height });
+    await page.goto(
+      `${PAGE}?platform=${platform}&placement=${placement}&format=carousel&creator=Jess%20Rivera` +
+        `&handle=jess.reviews&media=${encodeURIComponent(PX_RED + "|" + PX_BLUE)}`
+    );
+    await expect(page).toHaveScreenshot(`${platform}-${placement}-carousel-media.png`);
+  });
+}
+
 test("facebook / no params (pure defaults)", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 700 });
   await page.goto(PAGE);

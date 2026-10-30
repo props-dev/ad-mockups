@@ -190,7 +190,7 @@ test.describe("platform renderers", () => {
   });
 
   test("placement defaults to feed and unknown values fall back to feed", async ({ page }) => {
-    await page.goto(PAGE + "?placement=reels");
+    await page.goto(PAGE + "?placement=bogus");
     await expect(page.locator(".fb")).toBeVisible();
     expect(await page.locator(".fbs").count()).toBe(0);
   });
@@ -263,7 +263,7 @@ test.describe("platform renderers", () => {
   test("youtube: video format defaults to tap-to-play (no autoplay)", async ({ page }) => {
     await page.goto(PAGE + "?platform=youtube&format=video&poster=" + encodeURIComponent(PX_RED));
     await expect(page.locator(".play-overlay")).toBeVisible();
-    await expect(page.locator(".yt-ad-badge")).toHaveText("Ad");
+    await expect(page.locator(".yt-ad-badge")).toHaveText("Ad", { useInnerText: true });
   });
 
   test("youtube shorts: full-bleed 9:16 with action rail, Sponsored, CTA", async ({ page }) => {
@@ -290,7 +290,7 @@ test.describe("platform renderers", () => {
     await expect(page.locator(".ytd")).toBeVisible();
     // desktop stays light (only shorts goes dark)
     expect(await page.locator("body.theme-dark").count()).toBe(0);
-    await expect(page.locator(".ytd-adchip")).toHaveText("Ad");
+    await expect(page.locator(".ytd-adchip")).toHaveText("Ad", { useInnerText: true });
     await expect(page.locator(".ytd-skip")).toContainText("Skip");
     await expect(page.locator(".ytd-companion-cta")).toHaveText("Visit site");
     await expect(page.locator(".ytd-companion-sub")).toHaveText("shop.acme.com");
@@ -338,6 +338,154 @@ test.describe("platform renderers", () => {
     await page.goto(PAGE + "?platform=facebook&placement=shorts");
     await expect(page.locator(".fb")).toBeVisible();
     expect(await page.locator(".yts").count()).toBe(0);
+  });
+
+  test("facebook reels: dark full-bleed with rail counts, Follow, CTA that turns blue", async ({ page }) => {
+    await page.goto(PAGE + "?platform=facebook&placement=reels&format=video&creator=Jess%20Rivera");
+    await expect(page.locator("body")).toHaveClass(/theme-dark/);
+    await expect(page.locator(".vx.fbr")).toBeVisible();
+    await expect(page.locator(".vx-title")).toHaveText("Reels");
+    await expect(page.locator(".vx-rail-count")).toHaveText(["1.2K", "84", "23"]);
+    await expect(page.locator(".vx-name")).toContainText("Jess Rivera");
+    await expect(page.locator(".vx-follow")).toHaveText("Follow");
+    await expect(page.locator(".vx-cta")).not.toHaveClass(/(^|\s)hot(\s|$)/);
+    await expect(page.locator(".vx-cta")).toHaveClass(/(^|\s)hot(\s|$)/, { timeout: 3000 });
+  });
+
+  test("facebook instream: 16:9 player with Ad chip and attachment row, light theme", async ({ page }) => {
+    await page.goto(PAGE + "?platform=facebook&placement=instream&format=video" +
+      "&creator=Acme&headline=Try%20it%20free&domain=acme.com&cta=Shop%20Now");
+    await expect(page.locator("body")).not.toHaveClass(/theme-dark/);
+    const box = await page.locator(".fbi-player .media-shell").boundingBox();
+    expect(Math.abs(box.width / box.height - 16 / 9)).toBeLessThan(0.02);
+    await expect(page.locator(".fbi-adchip")).toContainText("Ad");
+    await expect(page.locator(".fbi-name")).toContainText("Acme");
+    await expect(page.locator(".fbi-headline")).toHaveText("Try it free");
+    await expect(page.locator(".fbi-sub")).toHaveText("acme.com");
+    await expect(page.locator(".fbi-cta")).toHaveText("Shop Now");
+  });
+
+  test("facebook marketplace: sponsored tile first, three skeleton listings", async ({ page }) => {
+    await page.goto(PAGE + "?platform=facebook&placement=marketplace&creator=Acme&headline=Spring%20sale");
+    await expect(page.locator(".fbm-title")).toHaveText("Marketplace");
+    await expect(page.locator(".fbm-tile")).toHaveCount(4);
+    await expect(page.locator(".fbm-headline")).toHaveText("Spring sale");
+    await expect(page.locator(".fbm-by")).toContainText("Sponsored · Acme");
+    await expect(page.locator(".fbm-skel")).toHaveCount(3);
+  });
+
+  test("instagram feed: username header, CTA strip, likes, caption, comments", async ({ page }) => {
+    await page.goto(PAGE + "?platform=instagram&creator=Jess%20Rivera&handle=jess.reviews");
+    await expect(page.locator("body")).not.toHaveClass(/theme-dark/);
+    await expect(page.locator(".ig-name")).toContainText("jess.reviews");
+    await expect(page.locator(".ig-sponsored")).toHaveText("Sponsored");
+    await expect(page.locator(".ig-cta")).toContainText("Learn more");
+    await expect(page.locator(".ig-actions svg")).toHaveCount(4);
+    await expect(page.locator(".ig-likes")).toHaveText("1.2K likes");
+    await expect(page.locator(".ig-caption b")).toHaveText("jess.reviews");
+    await expect(page.locator(".ig-comments")).toHaveText("View all 84 comments");
+    await expect(page.locator(".ig-cta")).toHaveClass(/(^|\s)hot(\s|$)/, { timeout: 3000 });
+  });
+
+  test("instagram feed: zero likes and comments drop their rows; byline=name shows the creator", async ({ page }) => {
+    await page.goto(PAGE + "?platform=instagram&creator=Jess%20Rivera&handle=jess.reviews&likes=0&comments=0&byline=name");
+    await expect(page.locator(".ig-likes")).toHaveCount(0);
+    await expect(page.locator(".ig-comments")).toHaveText("");
+    await expect(page.locator(".ig-name")).toContainText("Jess Rivera");
+  });
+
+  test("instagram reels and story: dark theme with username and CTA", async ({ page }) => {
+    await page.goto(PAGE + "?platform=instagram&placement=reels&format=video&handle=jess.reviews");
+    await expect(page.locator("body")).toHaveClass(/theme-dark/);
+    await expect(page.locator(".vx.igr")).toBeVisible();
+    await expect(page.locator(".vx-rail-count")).toHaveText(["1.2K", "84", "23"]);
+    await expect(page.locator(".vx-music")).toContainText("jess.reviews · Original audio");
+    await page.goto(PAGE + "?platform=instagram&placement=story&handle=jess.reviews&cta=Shop%20now");
+    await expect(page.locator("body")).toHaveClass(/theme-dark/);
+    await expect(page.locator(".igs-header .vx-name")).toContainText("jess.reviews");
+    await expect(page.locator(".igs-cta")).toContainText("Shop now");
+  });
+
+  test("meta placements fall back to feed on other platforms", async ({ page }) => {
+    await page.goto(PAGE + "?platform=tiktok&placement=reels");
+    await expect(page.locator(".tt")).toBeVisible();
+    expect(await page.locator(".vx").count()).toBe(0);
+    await page.goto(PAGE + "?platform=instagram&placement=marketplace");
+    await expect(page.locator(".ig")).toBeVisible();
+    expect(await page.locator(".fbm").count()).toBe(0);
+  });
+
+  test("tiktok: saves fills the bookmark; without it the bookmark keeps showing views", async ({ page }) => {
+    await page.goto(PAGE + "?platform=tiktok&saves=1.1K&views=9K");
+    await expect(page.locator(".tt-rail-count")).toHaveText(["1.2K", "84", "1.1K", "23"]);
+    await page.goto(PAGE + "?platform=tiktok&views=9K");
+    await expect(page.locator(".tt-rail-count")).toHaveText(["1.2K", "84", "9K", "23"]);
+  });
+
+  test("omit leaves unknown fields out instead of showing defaults", async ({ page }) => {
+    await page.goto(PAGE + "?platform=tiktok&omit=saves");
+    await expect(page.locator(".tt-rail-item")).toHaveCount(4);
+    await expect(page.locator(".tt-rail-count")).toHaveText(["1.2K", "84", "23"]);
+    await page.goto(PAGE + "?omit=domain|description|shares&description=Free%20shipping");
+    await expect(page.locator(".fb-domain")).toHaveCount(0);
+    await expect(page.locator(".fb-desc")).toHaveCount(0);
+    await expect(page.locator(".fb-counts")).toContainText("84 comments");
+    await expect(page.locator(".fb-counts")).not.toContainText("shares");
+    await page.goto(PAGE + "?platform=facebook&placement=reels&omit=likes");
+    await expect(page.locator(".vx-rail-count")).toHaveText(["84", "23"]);
+  });
+
+  test("instagram feed carousel: real media gets dots and counter that advance", async ({ page }) => {
+    await page.goto(PAGE + "?platform=instagram&format=carousel&media=" + encodeURIComponent(PX_RED + "|" + PX_BLUE));
+    await expect(page.locator(".ig .car-item")).toHaveCount(2);
+    await expect(page.locator(".ig .car-counter")).toHaveText("1/2");
+    await page.locator(".ig .car-arrow.next").click();
+    await expect(page.locator(".ig .car-counter")).toHaveText("2/2");
+  });
+
+  test("facebook instream: Ad chip counts down the video's real remaining time", async ({ page }) => {
+    await page.route((url) => url.hostname === "cdn.example.com", (route) => route.abort());
+    await page.goto(PAGE + "?platform=facebook&placement=instream&format=video&media=" +
+      encodeURIComponent("https://cdn.example.com/ad.mp4"));
+    // no invented length: the chip reads "Ad" and the bar is empty until metadata loads
+    await expect(page.locator(".js-fbi-time")).toBeHidden();
+    await expect(page.locator(".fbi-adchip")).toHaveText("Ad", { useInnerText: true });
+    expect(await page.locator(".js-fbi-fill").evaluate((el) => getComputedStyle(el).width)).toBe("0px");
+    await page.evaluate(() => {
+      const video = document.querySelector(".fbi .js-video");
+      Object.defineProperty(video, "duration", { value: 30 });
+      Object.defineProperty(video, "currentTime", { value: 10 });
+      video.dispatchEvent(new Event("timeupdate"));
+    });
+    await expect(page.locator(".js-fbi-time")).toBeVisible();
+    await expect(page.locator(".fbi-adchip")).toHaveText("Ad · 0:20", { useInnerText: true });
+    const width = await page.locator(".js-fbi-fill").evaluate((el) => el.style.width);
+    expect(width).toBe("33.33%");
+  });
+
+  test("reels: an expanded long caption scrolls and keeps the account row on screen", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    const copy = encodeURIComponent(LONG_COPY.repeat(12));
+    for (const platform of ["facebook", "instagram"]) {
+      await page.goto(PAGE + `?platform=${platform}&placement=reels&copy=${copy}`);
+      await page.locator(".vx-copy .js-see-more").click();
+      const id = await page.locator(".vx-id").boundingBox();
+      expect(id.y).toBeGreaterThanOrEqual(0);
+      const copyBox = await page.locator(".vx-copy").boundingBox();
+      expect(copyBox.height).toBeLessThanOrEqual(667 * 0.38 + 1);
+    }
+  });
+
+  test("omit also applies to Google and YouTube fields", async ({ page }) => {
+    await page.goto(PAGE + "?platform=google&description=DETAIL&omit=description");
+    await expect(page.locator(".gg-desc")).toHaveCount(0);
+    await page.goto(PAGE + "?platform=youtube&description=DETAIL&omit=description");
+    await expect(page.locator(".yt-desc")).toHaveCount(0);
+    await page.goto(PAGE + "?platform=youtube&placement=shorts&omit=likes");
+    await expect(page.locator(".yts-rail-count")).toHaveText(["Dislike", "84", "Share"]);
+    await page.goto(PAGE + "?platform=youtube&placement=desktop&omit=domain,likes");
+    await expect(page.locator(".ytd-companion-sub")).toHaveCount(0);
+    await expect(page.locator(".ytd-like-count")).toHaveCount(0);
   });
 
   test("pinterest: Save button and business falls back to creator", async ({ page }) => {

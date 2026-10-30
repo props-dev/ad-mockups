@@ -8,7 +8,7 @@
      object/fetch even if an escaping bug slipped through. script-src must stay
      'unsafe-inline' because the whole app is the inline script below. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src https: data:; media-src https:; base-uri 'none'; form-action 'none'">
-<meta name="ad-mockup-version" content="1.5.0">
+<meta name="ad-mockup-version" content="1.6.0">
 <title>Ad Preview</title>
 <style>
   /* ============ base ============ */
@@ -410,6 +410,180 @@
   .ytd-action { display: flex; align-items: center; gap: 6px; background: #f2f2f2;
     border-radius: 18px; height: 36px; padding: 0 14px; font-size: 13px; font-weight: 500; color: #0f0f0f; }
   .ytd-action svg { width: 18px; height: 18px; fill: #0f0f0f; }
+
+  /* ============================================================
+     shared: full-bleed vertical video (FB Reels, IG Reels, IG Story)
+     ============================================================ */
+  .vx { position: relative; width: 100%; max-width: 420px; height: 100dvh; max-height: 100vh;
+    background: #000; color: #fff; overflow: hidden; }
+  .vx .media-shell { position: absolute; inset: 0; height: 100%; }
+  .vx .carousel, .vx .car-track, .vx .car-item { height: 100%; }
+  .vx-top { position: absolute; top: 0; left: 0; right: 0; z-index: 4;
+    display: flex; align-items: center; gap: 10px; padding: 14px 14px 18px;
+    background: linear-gradient(rgba(0,0,0,.4), transparent); }
+  .vx-title { flex: 1; font-size: 20px; font-weight: 700; letter-spacing: -.01em;
+    text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+  .vx-top svg { width: 22px; height: 22px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
+  .vx-rail { position: absolute; right: 8px; bottom: 112px; z-index: 4;
+    display: flex; flex-direction: column; align-items: center; gap: 20px; }
+  .vx-rail-item { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 40px; }
+  .vx-rail-item svg { width: 28px; height: 28px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
+  .vx-rail-count { font-size: 12px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+  .vx-audio { width: 30px; height: 30px; border-radius: 7px; overflow: hidden;
+    border: 2px solid #fff; }
+  .vx-audio .avatar { width: 100%; height: 100%; border-radius: 0; font-size: 10px; }
+  .vx-bottom { position: absolute; left: 0; right: 60px; bottom: 0; z-index: 4; padding: 40px 14px 16px; }
+  /* one full-width scrim under the copy and the rail, so no seam at the rail edge */
+  .fbr::after, .igr::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 38%;
+    z-index: 3; pointer-events: none; background: linear-gradient(transparent, rgba(0,0,0,.6)); }
+  .vx-id { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .vx-id .avatar { width: 32px; height: 32px; font-size: 12px; border: 1px solid rgba(255,255,255,.6); }
+  .vx-id-text { min-width: 0; }
+  .vx-name { font-size: 14px; font-weight: 600; line-height: 1.2; display: flex; align-items: center; gap: 4px;
+    text-shadow: 0 1px 2px rgba(0,0,0,.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vx-name .verified svg { width: 12px; height: 12px; fill: #fff; }
+  .vx-sponsored { font-size: 12px; color: rgba(255,255,255,.85); text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+  .vx-follow { margin-left: 4px; flex-shrink: 0; font-size: 13px; font-weight: 600; padding: 4px 10px;
+    border: 1px solid rgba(255,255,255,.75); border-radius: 8px; }
+  /* an expanded caption scrolls inside a bounded panel rather than pushing the
+     account row off the top of the fixed-height screen */
+  .vx-copy { font-size: 14px; line-height: 1.35; margin-top: 8px; text-shadow: 0 1px 2px rgba(0,0,0,.5);
+    overflow-wrap: break-word; max-height: 38vh; overflow-y: auto; scrollbar-width: none; }
+  .vx-copy::-webkit-scrollbar { display: none; }
+  .vx-copy .more { color: rgba(255,255,255,.75); font-weight: 600; }
+  .vx-music { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px;
+    text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+  .vx-music svg { width: 12px; height: 12px; fill: #fff; flex-shrink: 0; }
+  .vx-music span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vx-cta { display: flex; align-items: center; justify-content: space-between; margin-top: 12px;
+    width: 100%; padding: 10px 14px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    color: #fff; background: rgba(255,255,255,.2); transition: background .5s, color .5s; }
+  .vx-cta svg { width: 13px; height: 13px; fill: currentColor; }
+  .vx .car-dots { bottom: auto; top: 60px; }
+  .vx .car-counter { top: 60px; }
+  .vx .mute-btn { bottom: auto; top: 62px; right: 12px; }
+  /* FB Reels: solid FB-blue CTA once "hot"; IG: IG-blue */
+  .fbr .vx-cta.hot { background: #0866ff; }
+  .igr .vx-cta.hot { background: #0095f6; }
+  /* filled glyphs in dark chrome; outline (stroke) icons inherit currentColor */
+  .vx .wf svg { fill: #fff; }
+
+  /* ============================================================
+     FACEBOOK in-stream video (placement=instream) — ad inside a host video
+     ============================================================ */
+  .fbi { width: 100%; max-width: 400px; background: #fff; color: #050505;
+    border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.15); overflow: hidden; margin: 8px; }
+  /* the host video's post header: neutral skeleton, never invented content */
+  .fbi-host { display: flex; align-items: center; gap: 8px; padding: 12px; }
+  .fbi-host-av { width: 40px; height: 40px; border-radius: 50%; background: #e4e6eb; flex-shrink: 0; }
+  .fbi-host-lines { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .fbi-bar { display: block; height: 9px; border-radius: 5px; background: #e4e6eb; }
+  .fbi-player { position: relative; background: #000; }
+  .fbi-player .media-shell { aspect-ratio: 16 / 9; }
+  /* a vertical creative plays letterboxed inside the host's 16:9 player */
+  .fbi-player .media-shell > .media-el, .fbi-player .car-item > .media-el { object-fit: contain; }
+  .fbi-adchip { position: absolute; left: 10px; top: 10px; z-index: 4; display: flex; align-items: center; white-space: pre;
+    background: rgba(0,0,0,.6); color: #fff; font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
+  .fbi-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; z-index: 4;
+    background: rgba(255,255,255,.3); }
+  .fbi-progress-fill { display: block; width: 0; height: 100%; background: #f7b928; }
+  .fbi-attach { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #f0f2f5; }
+  .fbi-attach .avatar { width: 36px; height: 36px; font-size: 14px; }
+  .fbi-attach-text { flex: 1; min-width: 0; }
+  .fbi-name { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fbi-name .verified svg { width: 12px; height: 12px; fill: #1877f2; }
+  .fbi-headline { font-size: 14px; font-weight: 600; line-height: 1.25;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .fbi-sub { font-size: 12px; color: #65676b; }
+  .fbi-cta { flex-shrink: 0; background: #e4e6eb; color: #050505; font-size: 14px; font-weight: 600;
+    padding: 8px 12px; border-radius: 6px; white-space: nowrap; }
+  .fbi-host-foot { display: flex; flex-direction: column; gap: 6px; padding: 12px; }
+
+  /* ============================================================
+     FACEBOOK Marketplace (placement=marketplace) — sponsored tile in the grid
+     ============================================================ */
+  .fbm { width: 100%; max-width: 400px; background: #fff; color: #050505; margin: 8px;
+    border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.15); overflow: hidden; }
+  .fbm-top { display: flex; align-items: center; justify-content: space-between; padding: 12px 12px 8px; }
+  .fbm-title { font-size: 22px; font-weight: 700; letter-spacing: -.01em; }
+  .fbm-top-icons { display: flex; gap: 10px; }
+  .fbm-top-icons span { width: 34px; height: 34px; border-radius: 50%; background: #e4e6eb;
+    display: flex; align-items: center; justify-content: center; }
+  .fbm-top-icons svg { width: 16px; height: 16px; fill: #050505; }
+  .fbm-chips { display: flex; gap: 8px; padding: 0 12px 12px; }
+  .fbm-chip { font-size: 14px; font-weight: 600; padding: 7px 12px; border-radius: 18px; background: #e4e6eb; }
+  .fbm-chip.active { background: #e7f0fe; color: #0866ff; }
+  .fbm-section { font-size: 17px; font-weight: 700; padding: 0 12px 8px; }
+  .fbm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 4px; padding: 0 0 12px; }
+  .fbm-tile { min-width: 0; }
+  .fbm-tile .media-shell { aspect-ratio: 1 / 1; }
+  .fbm-tile-text { padding: 6px 8px 0; }
+  .fbm-headline { font-size: 14px; font-weight: 600; line-height: 1.25;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .fbm-by { font-size: 13px; color: #65676b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fbm-cta { display: inline-block; margin-top: 6px; font-size: 13px; font-weight: 600; color: #0866ff; }
+  .fbm-skel { display: block; aspect-ratio: 1 / 1; background: #f0f2f5; }
+  .fbm-skel-lines { display: flex; flex-direction: column; gap: 6px; padding: 8px 8px 0; }
+  .fbm-skel-lines span { display: block; height: 9px; border-radius: 5px; background: #e4e6eb; }
+
+  /* ============================================================
+     INSTAGRAM feed
+     ============================================================ */
+  .ig { width: 100%; max-width: 400px; background: #fff; color: #000; margin: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .ig-header { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+  .ig-header .avatar { width: 32px; height: 32px; font-size: 12px; }
+  .ig-id { flex: 1; min-width: 0; }
+  .ig-name { font-size: 14px; font-weight: 600; line-height: 1.2; display: flex; align-items: center; gap: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ig-name .verified svg { width: 12px; height: 12px; fill: #0095f6; }
+  .ig-sponsored { font-size: 12px; color: #262626; }
+  .ig-header > svg { width: 18px; height: 18px; fill: #262626; }
+  .ig-cta { display: flex; align-items: center; justify-content: space-between; width: 100%;
+    padding: 11px 12px; font-size: 14px; font-weight: 600; color: #000; background: #efefef;
+    transition: background .5s, color .5s; }
+  .ig-cta svg { width: 13px; height: 13px; fill: currentColor; }
+  .ig-cta.hot { background: #0095f6; color: #fff; }
+  .ig-actions { display: flex; align-items: center; gap: 14px; padding: 10px 12px 6px; }
+  .ig-actions svg { width: 24px; height: 24px; }
+  .ig-actions .ig-save { margin-left: auto; }
+  .ig-likes { font-size: 14px; font-weight: 600; padding: 0 12px; }
+  .ig-caption { font-size: 14px; line-height: 1.35; padding: 4px 12px 0; overflow-wrap: break-word; }
+  .ig-caption b { font-weight: 600; }
+  .ig-caption .see-more { color: #737373; font-weight: 400; }
+  .ig-comments { font-size: 14px; color: #737373; padding: 4px 12px 12px; }
+  .ig .car-dots { position: static; padding-top: 8px; }
+  .ig .car-dots .dot { background: #dbdbdb; }
+  .ig .car-dots .dot.active { background: #0095f6; }
+
+  /* ============================================================
+     INSTAGRAM story (placement=story)
+     ============================================================ */
+  .igs-progress, .igs .car-dots { position: absolute; top: 8px; left: 8px; right: 8px; bottom: auto;
+    display: flex; gap: 3px; justify-content: stretch; z-index: 5; }
+  .igs-progress .seg, .igs .car-dots .dot { flex: 1; width: auto; height: 2px; border-radius: 1px;
+    background: rgba(255,255,255,.35); transition: background .2s; }
+  .igs-progress .seg.active, .igs .car-dots .dot.active { background: #fff; transform: none; }
+  .igs .car-counter { display: none; }
+  .igs-header { position: absolute; top: 18px; left: 0; right: 0; z-index: 5;
+    display: flex; align-items: center; gap: 8px; padding: 0 12px; }
+  .igs-header .avatar { width: 32px; height: 32px; font-size: 12px; }
+  .igs-header .vx-id-text { flex: 1; }
+  .igs-icons { display: flex; gap: 16px; }
+  .igs-icons svg { width: 20px; height: 20px; fill: #fff; filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
+  .igs-scrim { position: absolute; top: 0; left: 0; right: 0; height: 100px; z-index: 4;
+    background: linear-gradient(rgba(0,0,0,.4), transparent); pointer-events: none; }
+  .igs-bottom { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5;
+    display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 44px 16px 20px;
+    background: linear-gradient(transparent, rgba(0,0,0,.5)); }
+  .igs-copy { font-size: 14px; line-height: 1.35; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,.8);
+    overflow-wrap: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .igs-chevron svg { width: 18px; height: 18px; fill: #fff; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
+  .igs-cta { display: flex; align-items: center; gap: 6px; background: #fff; color: #000;
+    font-size: 14px; font-weight: 600; padding: 9px 20px; border-radius: 20px; }
+  .igs-cta svg { width: 14px; height: 14px; }
+  .igs .mute-btn { bottom: auto; top: 62px; right: 12px; }
 </style>
 </head>
 <body>
@@ -424,8 +598,9 @@
    URL query-string params override anything set here.
    ===================================================================== */
 window.AD_MOCKUP_PARAMS = {
-  // platform: "facebook",              // facebook | tiktok | google | youtube | pinterest
-  // placement: "feed",                 // facebook: feed | story · youtube: feed | shorts | desktop
+  // platform: "facebook",              // facebook | instagram | tiktok | google | youtube | pinterest
+  // placement: "feed",                 // facebook: feed | story | reels | instream | marketplace
+                                        // instagram: feed | reels | story · youtube: feed | shorts | desktop
   // format: "image",                   // video | image | carousel
   // creator: "Jess Reviews",
   // handle: "jessreviews",
@@ -440,7 +615,10 @@ window.AD_MOCKUP_PARAMS = {
   // media: "url1|url2|url3",           // pipe-separated for carousel (never commas)
   // poster: "https://.../thumb.jpg",   // video thumbnail
   // likes: "1.2K", comments: "84", shares: "23", views: "12K",
+  // saves: "1.1K",                     // TikTok bookmark count; falls back to views when unset
   // counts: "1",                     // 0 = hide engagement numbers
+  // omit: "saves,domain",              // fields the source does not have: drawn without them
+                                        // (likes, comments, shares, saves, domain, description)
   // nav: "0",                          // 1 = app bottom tab bar (TikTok in-feed)
   // verified: "1",                     // blue check (facebook / tiktok)
   // autoplay: "1",                     // 0 = show tap-to-play overlay instead
@@ -456,7 +634,7 @@ window.AD_MOCKUP_PARAMS = {
 
   /* Bump on any change; keep in sync with the ad-mockup-version meta tag.
      Param changes must be additive-only — Bubble pages depend on this contract. */
-  var VERSION = "1.5.0";
+  var VERSION = "1.6.0";
 
   /* ---------------- defaults ---------------- */
   var COMMON = {
@@ -478,7 +656,9 @@ window.AD_MOCKUP_PARAMS = {
     comments: "84",
     shares: "23",
     views: "12K",
+    saves: "",
     counts: "1",
+    omit: "",
     nav: "0",
     verified: "0",
     autoplay: "1",
@@ -504,12 +684,17 @@ window.AD_MOCKUP_PARAMS = {
     pinterest: {
       cta: "Save", ratio: "2:3",
       copy: ""
+    },
+    instagram: {
+      cta: "Learn more", ratio: "1:1",
+      copy: "30 days in and I'm not going back. Full routine below 👇"
     }
   };
   /* valid placements per platform; first entry is the default. Platforms not
      listed here only support "feed". Additive: new placements can be appended. */
   var PLACEMENTS = {
-    facebook: ["feed", "story"],
+    facebook: ["feed", "story", "reels", "instream", "marketplace"],
+    instagram: ["feed", "reels", "story"],
     youtube: ["feed", "shorts", "desktop"]
   };
 
@@ -579,6 +764,12 @@ window.AD_MOCKUP_PARAMS = {
     p.nav = boolish(p.nav);
     p.verified = boolish(p.verified);
     p.autoplay = boolish(p.autoplay);
+    var omit = {};
+    String(p.omit || "").split(/[|,]/).forEach(function (k) {
+      k = k.trim().toLowerCase();
+      if (k) omit[k] = true;
+    });
+    p.omit = omit;
     return p;
   }
   function boolish(v) {
@@ -634,12 +825,22 @@ window.AD_MOCKUP_PARAMS = {
     return esc(t.shown) + (t.hidden ? "&hellip;" : "");
   }
   /* copy with See-more: hidden remainder stored escaped in a data attr */
-  function copyHtml(text, limit) {
+  function copyHtml(text, limit, moreLabel) {
     var t = truncate(text, limit);
     if (!t.hidden) return esc(t.shown);
     return esc(t.shown) +
       '<span class="js-hidden" hidden>' + esc(t.hidden) + '</span>' +
-      '<span class="see-more js-see-more">&hellip; See more</span>';
+      '<span class="see-more js-see-more">&hellip; ' + esc(moreLabel || "See more") + '</span>';
+  }
+  /* omit lists fields the source genuinely lacks; they are left out, never faked */
+  function omitted(p, key) { return !!p.omit[key]; }
+  function countSpan(p, key, cls, value) {
+    if (!p.counts || omitted(p, key)) return "";
+    return '<span class="' + cls + '">' + esc(value) + '</span>';
+  }
+  /* "0" engagement reads as an empty state on IG ("0 likes"), so those rows drop */
+  function hasCount(p, key) {
+    return p.counts && !omitted(p, key) && String(p[key]).trim() !== "0";
   }
   function placeholder(dark, label) {
     return '<span class="ph' + (dark ? " dark" : "") + '">' + I.image +
@@ -686,6 +887,20 @@ window.AD_MOCKUP_PARAMS = {
     friends: navSvg("M9 4a3.6 3.6 0 1 1 0 7.2A3.6 3.6 0 0 1 9 4zm0 8.8c3.4 0 6.2 1.9 6.2 4.4V19.5H2.8v-2.3c0-2.5 2.8-4.4 6.2-4.4zM16.4 5a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm.4 7.6c2.6.1 4.4 1.6 4.4 3.5v3.4h-4.2v-2.3c0-1.8-.8-3.4-2.1-4.3.6-.2 1.2-.3 1.9-.3z"),
     inbox: navSvg("M4 3.5h16a1 1 0 0 1 1 1V16a1 1 0 0 1-1 1h-6.3L9 20.8V17H4a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1zm1 2v9.5h6v1.8l2.2-1.8H19V5.5z"),
     profile: navSvg("M12 3a4.6 4.6 0 1 1 0 9.2A4.6 4.6 0 0 1 12 3zm0 2a2.6 2.6 0 1 0 0 5.2A2.6 2.6 0 0 0 12 5zm0 8.6c4.5 0 8 2.3 8 5.3V21H4v-2.1c0-3 3.5-5.3 8-5.3zm0 2c-3.4 0-5.9 1.6-6 3.4h12c-.1-1.8-2.6-3.4-6-3.4z")
+  };
+  /* outline glyphs (Instagram, camera, link): stroke inherits currentColor */
+  function strokeSvg(paths) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"' +
+      ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      paths.map(function (d) { return '<path d="' + d + '"/>'; }).join("") + '</svg>';
+  }
+  var S = {
+    heart: strokeSvg(["M16.8 3.6c-2 0-3.8 1.1-4.8 2.8-1-1.7-2.8-2.8-4.8-2.8C4.3 3.6 2 6 2 9c0 5.6 10 11.5 10 11.5S22 14.6 22 9c0-3-2.3-5.4-5.2-5.4z"]),
+    comment: strokeSvg(["M20.7 16.3A9.3 9.3 0 1 0 17.3 19.7L21.5 21z"]),
+    send: strokeSvg(["M22 2.5 10.5 13.5", "M22 2.5 15 21.5l-4.5-8-8-4.5z"]),
+    save: strokeSvg(["M19 21.5 12 16l-7 5.5V2.5h14z"]),
+    camera: strokeSvg(["M3 8h3.5L8.3 5.5h7.4L17.5 8H21v11H3z", "M12 10a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7z"]),
+    link: strokeSvg(["M10 14a4.2 4.2 0 0 0 6 0l3-3a4.2 4.2 0 0 0-6-6l-1 1", "M14 10a4.2 4.2 0 0 0-6 0l-3 3a4.2 4.2 0 0 0 6 6l1-1"])
   };
   var verifiedBadge = '<span class="verified">' + I.check + '</span>';
 
@@ -748,6 +963,9 @@ window.AD_MOCKUP_PARAMS = {
   /* ---------------- platform renderers ---------------- */
   function renderFacebook(p) {
     if (p.placement === "story") return renderFacebookStory(p);
+    if (p.placement === "reels") return renderFacebookReels(p);
+    if (p.placement === "instream") return renderFacebookInstream(p);
+    if (p.placement === "marketplace") return renderFacebookMarketplace(p);
     return '<div class="fb">' +
       '<div class="fb-header">' + avatarHtml(p) +
         '<div class="fb-id"><div class="fb-name">' + esc(p.creator) +
@@ -757,19 +975,155 @@ window.AD_MOCKUP_PARAMS = {
       '<div class="fb-copy">' + copyHtml(p.copy, 125) + '</div>' +
       mediaHtml(p) +
       '<div class="fb-linkcard"><div class="fb-linkcard-text">' +
-        '<div class="fb-domain">' + esc(p.domain) + '</div>' +
+        (omitted(p, "domain") ? "" : '<div class="fb-domain">' + esc(p.domain) + '</div>') +
         '<div class="fb-headline">' + esc(p.headline) + '</div>' +
-        (isBlank(p.description) ? "" : '<div class="fb-desc">' + esc(p.description) + '</div>') +
+        (isBlank(p.description) || omitted(p, "description") ? "" : '<div class="fb-desc">' + esc(p.description) + '</div>') +
       '</div><button class="fb-cta">' + esc(p.cta) + '</button></div>' +
-      (p.counts ? '<div class="fb-counts"><div class="fb-rxns"><span class="fb-rxn-stack">' +
-        '<span class="fb-rxn like">' + I.thumb + '</span>' +
-        '<span class="fb-rxn love">' + I.heart + '</span></span>' +
-        '<span>' + esc(p.likes) + '</span></div>' +
-        '<div>' + esc(p.comments) + ' comments &middot; ' + esc(p.shares) + ' shares</div></div>' : '') +
+      fbCountsRow(p) +
       '<div class="fb-actions">' +
         '<button class="fb-action">' + I.thumb + 'Like</button>' +
         '<button class="fb-action">' + I.comment + 'Comment</button>' +
         '<button class="fb-action">' + I.share + 'Share</button></div>' +
+    '</div>';
+  }
+
+  function fbCountsRow(p) {
+    if (!p.counts) return "";
+    var right = [];
+    if (!omitted(p, "comments")) right.push(esc(p.comments) + ' comments');
+    if (!omitted(p, "shares")) right.push(esc(p.shares) + ' shares');
+    var left = omitted(p, "likes") ? '<div></div>' :
+      '<div class="fb-rxns"><span class="fb-rxn-stack">' +
+        '<span class="fb-rxn like">' + I.thumb + '</span>' +
+        '<span class="fb-rxn love">' + I.heart + '</span></span>' +
+        '<span>' + esc(p.likes) + '</span></div>';
+    return '<div class="fb-counts">' + left + '<div>' + right.join(' &middot; ') + '</div></div>';
+  }
+
+  /* ---- shared full-bleed vertical chrome (FB Reels, IG Reels, IG Story) ---- */
+  function railItem(p, icon, key, filled) {
+    return '<div class="vx-rail-item">' + (filled ? '<span class="wf">' + icon + '</span>' : icon) +
+      countSpan(p, key, "vx-rail-count", p[key]) + '</div>';
+  }
+  function vxId(p, name, follow) {
+    return '<div class="vx-id">' + avatarHtml(p) +
+      '<div class="vx-id-text"><div class="vx-name">' + esc(name) + (p.verified ? verifiedBadge : "") + '</div>' +
+      '<div class="vx-sponsored">Sponsored</div></div>' +
+      (follow ? '<span class="vx-follow">Follow</span>' : "") + '</div>';
+  }
+  /* Instagram shows the username; byline=name shows the creator's name instead */
+  function igName(p) { return p.byline === "name" ? p.creator : p.handle; }
+
+  function renderFacebookReels(p) {
+    return '<div class="vx fbr">' +
+      mediaHtml(p, { dark: true, fill: true }) +
+      '<div class="vx-top"><span class="vx-title">Reels</span>' + S.camera +
+        '<span class="wf">' + I.search + '</span></div>' +
+      '<div class="vx-rail">' +
+        railItem(p, I.thumb, "likes", true) +
+        railItem(p, I.comment, "comments", true) +
+        railItem(p, I.share, "shares", true) +
+        '<div class="vx-rail-item"><span class="wf">' + I.dots + '</span></div></div>' +
+      '<div class="vx-bottom">' + vxId(p, p.creator, true) +
+        (isBlank(p.copy) ? "" : '<div class="vx-copy">' + copyHtml(p.copy, 70) + '</div>') +
+        '<button class="vx-cta js-hot-cta"><span>' + esc(p.cta) + '</span>' + I.chevR + '</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  /* the ad plays mid-roll inside someone else's video; the host post is drawn as
+     neutral skeleton so nothing about it is invented */
+  function renderFacebookInstream(p) {
+    var player = Object.assign({}, p, { ratio: "16:9" });
+    return '<div class="fbi">' +
+      '<div class="fbi-host"><span class="fbi-host-av"></span><span class="fbi-host-lines">' +
+        '<span class="fbi-bar" style="width:46%"></span><span class="fbi-bar" style="width:28%"></span></span></div>' +
+      '<div class="fbi-player">' + mediaHtml(player, { dark: true }) +
+        '<span class="fbi-adchip">Ad<span class="js-fbi-time" hidden> &middot; <span class="js-fbi-left"></span></span></span>' +
+        '<span class="fbi-progress"><span class="fbi-progress-fill js-fbi-fill"></span></span></div>' +
+      '<div class="fbi-attach">' + avatarHtml(p) +
+        '<div class="fbi-attach-text"><div class="fbi-name">' + esc(p.creator) +
+          (p.verified ? verifiedBadge : "") + '</div>' +
+          '<div class="fbi-headline">' + esc(p.headline) + '</div>' +
+          (omitted(p, "domain") ? "" : '<div class="fbi-sub">' + esc(p.domain) + '</div>') + '</div>' +
+        '<button class="fbi-cta">' + esc(p.cta) + '</button></div>' +
+      '<div class="fbi-host-foot"><span class="fbi-bar" style="width:80%"></span>' +
+        '<span class="fbi-bar" style="width:55%"></span></div>' +
+    '</div>';
+  }
+
+  /* the sponsored tile among listings; neighbouring listings are skeletons */
+  function renderFacebookMarketplace(p) {
+    var tile = Object.assign({}, p, { ratio: "1:1" });
+    var skel = '<div class="fbm-tile"><span class="fbm-skel"></span><div class="fbm-skel-lines">' +
+      '<span style="width:70%"></span><span style="width:40%"></span></div></div>';
+    return '<div class="fbm">' +
+      '<div class="fbm-top"><span class="fbm-title">Marketplace</span>' +
+        '<span class="fbm-top-icons"><span>' + I.search + '</span></span></div>' +
+      '<div class="fbm-chips"><span class="fbm-chip">Sell</span><span class="fbm-chip active">For you</span>' +
+        '<span class="fbm-chip">Local</span></div>' +
+      '<div class="fbm-section">Today&#39;s picks</div>' +
+      '<div class="fbm-grid">' +
+        '<div class="fbm-tile">' + mediaHtml(tile) +
+          '<div class="fbm-tile-text"><div class="fbm-headline">' + esc(p.headline) + '</div>' +
+          '<div class="fbm-by">Sponsored &middot; ' + esc(p.creator) + '</div>' +
+          '<span class="fbm-cta">' + esc(p.cta) + '</span></div></div>' +
+        skel + skel + skel +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderInstagram(p) {
+    if (p.placement === "reels") return renderInstagramReels(p);
+    if (p.placement === "story") return renderInstagramStory(p);
+    var name = igName(p);
+    return '<div class="ig">' +
+      '<div class="ig-header">' + avatarHtml(p) +
+        '<div class="ig-id"><div class="ig-name">' + esc(name) + (p.verified ? verifiedBadge : "") + '</div>' +
+        '<div class="ig-sponsored">Sponsored</div></div>' + I.dots + '</div>' +
+      mediaHtml(p) +
+      '<button class="ig-cta js-hot-cta"><span>' + esc(p.cta) + '</span>' + I.chevR + '</button>' +
+      '<div class="ig-actions">' + S.heart + S.comment + S.send + '<span class="ig-save">' + S.save + '</span></div>' +
+      (hasCount(p, "likes") ? '<div class="ig-likes">' + esc(p.likes) + ' likes</div>' : "") +
+      (isBlank(p.copy) ? "" : '<div class="ig-caption"><b>' + esc(name) + '</b> ' + copyHtml(p.copy, 90, "more") + '</div>') +
+      '<div class="ig-comments">' + (hasCount(p, "comments") ? 'View all ' + esc(p.comments) + ' comments' : "") + '</div>' +
+    '</div>';
+  }
+
+  function renderInstagramReels(p) {
+    var name = igName(p);
+    return '<div class="vx igr">' +
+      mediaHtml(p, { dark: true, fill: true }) +
+      '<div class="vx-top"><span class="vx-title">Reels</span>' + S.camera + '</div>' +
+      '<div class="vx-rail">' +
+        railItem(p, S.heart, "likes", false) +
+        railItem(p, S.comment, "comments", false) +
+        railItem(p, S.send, "shares", false) +
+        '<div class="vx-rail-item"><span class="wf">' + I.dots + '</span></div>' +
+        '<span class="vx-audio">' + avatarHtml(p) + '</span></div>' +
+      '<div class="vx-bottom">' + vxId(p, name, true) +
+        (isBlank(p.copy) ? "" : '<div class="vx-copy">' + copyHtml(p.copy, 60, "more") + '</div>') +
+        '<div class="vx-music">' + I.note + '<span>' + esc(name) + ' &middot; Original audio</span></div>' +
+        '<button class="vx-cta js-hot-cta"><span>' + esc(p.cta) + '</span>' + I.chevR + '</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderInstagramStory(p) {
+    var isMultiCard = p.format === "carousel" && p.media.length > 1;
+    return '<div class="vx igs">' +
+      mediaHtml(p, { dark: true, fill: true, cumulativeDots: true }) +
+      '<div class="igs-scrim"></div>' +
+      (isMultiCard ? "" : '<div class="igs-progress"><span class="seg active"></span></div>') +
+      '<div class="igs-header">' + avatarHtml(p) +
+        '<div class="vx-id-text"><div class="vx-name">' + esc(igName(p)) + (p.verified ? verifiedBadge : "") + '</div>' +
+        '<div class="vx-sponsored">Sponsored</div></div>' +
+        '<span class="igs-icons">' + I.dots + I.close + '</span></div>' +
+      '<div class="igs-bottom">' +
+        (isBlank(p.copy) ? "" : '<div class="igs-copy">' + ellipsize(p.copy, 90) + '</div>') +
+        '<span class="igs-chevron">' + I.chevU + '</span>' +
+        '<button class="igs-cta">' + S.link + '<span>' + esc(p.cta) + '</span></button>' +
+      '</div>' +
     '</div>';
   }
 
@@ -812,10 +1166,12 @@ window.AD_MOCKUP_PARAMS = {
       '<div class="tt-rail' + (p.counts ? '' : ' no-counts') + '">' +
         '<div class="tt-rail-avatar">' + avatarHtml(p) +
           '<span class="tt-follow">' + I.plus + '</span></div>' +
-        '<div class="tt-rail-item">' + I.heart + (p.counts ? '<span class="tt-rail-count">' + esc(p.likes) + '</span>' : '') + '</div>' +
-        '<div class="tt-rail-item">' + I.comment + (p.counts ? '<span class="tt-rail-count">' + esc(p.comments) + '</span>' : '') + '</div>' +
-        '<div class="tt-rail-item">' + I.bookmark + (p.counts ? '<span class="tt-rail-count">' + esc(p.views) + '</span>' : '') + '</div>' +
-        '<div class="tt-rail-item">' + I.share + (p.counts ? '<span class="tt-rail-count">' + esc(p.shares) + '</span>' : '') + '</div>' +
+        '<div class="tt-rail-item">' + I.heart + countSpan(p, "likes", "tt-rail-count", p.likes) + '</div>' +
+        '<div class="tt-rail-item">' + I.comment + countSpan(p, "comments", "tt-rail-count", p.comments) + '</div>' +
+        /* bookmark: saves when given; legacy callers passed it as views */
+        '<div class="tt-rail-item">' + I.bookmark +
+          countSpan(p, "saves", "tt-rail-count", isBlank(p.saves) ? p.views : p.saves) + '</div>' +
+        '<div class="tt-rail-item">' + I.share + countSpan(p, "shares", "tt-rail-count", p.shares) + '</div>' +
         '<div class="tt-disc">' + avatarHtml(p) + '</div></div>' +
       '<div class="tt-bottom">' +
         '<div class="tt-handle">' + (p.byline === "name" ? esc(p.creator) : '@' + esc(p.handle)) +
@@ -839,7 +1195,7 @@ window.AD_MOCKUP_PARAMS = {
           '<span class="gg-source-dot">&middot;</span>' +
           '<span class="gg-sponsored">Sponsored</span>' +
           '<span class="gg-menu">' + I.dotsV + '</span></div>' +
-        (isBlank(p.description) ? "" : '<div class="gg-desc">' + esc(truncate(p.description, 90).shown) + '</div>') +
+        (isBlank(p.description) || omitted(p, "description") ? "" : '<div class="gg-desc">' + esc(truncate(p.description, 90).shown) + '</div>') +
         '<button class="gg-cta">' + esc(p.cta) + I.chevR + '</button>' +
       '</div>' +
     '</div>';
@@ -861,7 +1217,7 @@ window.AD_MOCKUP_PARAMS = {
           '<div class="yt-headline">' + esc(p.headline) + '</div>' +
           '<div class="yt-sub">Sponsored &middot; ' + esc(p.business) + '</div></div>' +
         '<span class="yt-menu">' + I.dotsV + '</span></div>' +
-      (isBlank(p.description) ? "" : '<div class="yt-desc">' + esc(p.description) + '</div>') +
+      (isBlank(p.description) || omitted(p, "description") ? "" : '<div class="yt-desc">' + esc(p.description) + '</div>') +
       '<button class="yt-cta">' + esc(p.cta) + I.ext + '</button>' +
     '</div>';
   }
@@ -871,11 +1227,11 @@ window.AD_MOCKUP_PARAMS = {
       mediaHtml(p, { dark: true, fill: true }) +
       '<div class="yts-rail' + (p.counts ? '' : ' no-counts') + '">' +
         '<div class="yts-rail-item">' + I.thumb +
-          (p.counts ? '<span class="yts-rail-count">' + esc(p.likes) + '</span>' : '') + '</div>' +
+          countSpan(p, "likes", "yts-rail-count", p.likes) + '</div>' +
         '<div class="yts-rail-item"><span class="yts-flip">' + I.thumb + '</span>' +
           '<span class="yts-rail-count">Dislike</span></div>' +
         '<div class="yts-rail-item">' + I.comment +
-          (p.counts ? '<span class="yts-rail-count">' + esc(p.comments) + '</span>' : '') + '</div>' +
+          countSpan(p, "comments", "yts-rail-count", p.comments) + '</div>' +
         '<div class="yts-rail-item">' + I.share +
           '<span class="yts-rail-count">Share</span></div>' +
         '<div class="yts-disc">' + avatarHtml(p) + '</div></div>' +
@@ -895,7 +1251,7 @@ window.AD_MOCKUP_PARAMS = {
         '<div class="ytd-companion">' + avatarHtml(p) +
           '<div class="ytd-companion-text">' +
             '<div class="ytd-companion-head">' + esc(truncate(p.headline, 40).shown) + '</div>' +
-            '<div class="ytd-companion-sub">' + esc(p.domain) + '</div></div>' +
+            (omitted(p, "domain") ? "" : '<div class="ytd-companion-sub">' + esc(p.domain) + '</div>') + '</div>' +
           '<button class="ytd-companion-cta">' + esc(p.cta) + '</button></div>' +
         '<span class="ytd-adchip">Ad</span>' +
         '<button class="ytd-skip">Skip' + I.skip + '</button>' +
@@ -916,7 +1272,7 @@ window.AD_MOCKUP_PARAMS = {
           '<button class="ytd-subscribe">Subscribe</button></div>' +
         '<div class="ytd-actions">' +
           '<span class="ytd-like"><span class="ytd-like-btn">' + I.thumb +
-            (p.counts ? '<span class="ytd-like-count">' + esc(p.likes) + '</span>' : '') + '</span>' +
+            countSpan(p, "likes", "ytd-like-count", p.likes) + '</span>' +
             '<span class="ytd-div"></span><span class="ytd-flip">' + I.thumb + '</span></span>' +
           '<button class="ytd-action">' + I.share + 'Share</button>' +
           '<button class="ytd-action">' + I.download + 'Save</button></div>' +
@@ -940,7 +1296,8 @@ window.AD_MOCKUP_PARAMS = {
     tiktok: renderTikTok,
     google: renderGoogle,
     youtube: renderYouTube,
-    pinterest: renderPinterest
+    pinterest: renderPinterest,
+    instagram: renderInstagram
   };
 
   /* ---------------- wiring (post-render behaviors) ---------------- */
@@ -1009,6 +1366,31 @@ window.AD_MOCKUP_PARAMS = {
     var cta = root.querySelector(".js-tt-cta");
     if (cta) setTimeout(function () { cta.classList.add("hot"); }, 1500);
   }
+  /* Meta CTAs settle into their brand colour shortly after the ad appears */
+  function wireHotCtas(root) {
+    root.querySelectorAll(".js-hot-cta").forEach(function (cta) {
+      setTimeout(function () { cta.classList.add("hot"); }, 1500);
+    });
+  }
+  /* in-stream: the Ad chip counts down the creative's real length */
+  /* the countdown shows only the creative's real length: until a video's
+     metadata loads (or for a still image) the chip reads just "Ad" */
+  function wireInstream(root) {
+    var time = root.querySelector(".js-fbi-time");
+    var left = root.querySelector(".js-fbi-left");
+    var fill = root.querySelector(".js-fbi-fill");
+    var video = root.querySelector(".fbi .js-video");
+    if (!left || !video) return;
+    function sync() {
+      var d = video.duration;
+      if (!isFinite(d) || d <= 0) return;
+      if (time) time.hidden = false;
+      left.textContent = fmtTime(d - video.currentTime);
+      if (fill) fill.style.width = (video.currentTime / d * 100).toFixed(2) + "%";
+    }
+    ["loadedmetadata", "timeupdate"].forEach(function (ev) { video.addEventListener(ev, sync); });
+    sync();
+  }
   /* YouTube duration chrome driven by the real <video> metadata. In-feed badge:
      total length on the thumbnail, remaining time counting down while the
      preview plays (matches real YouTube). Desktop: live current/total clock +
@@ -1044,13 +1426,16 @@ window.AD_MOCKUP_PARAMS = {
   function render() {
     params = computeParams();
     document.body.classList.toggle("theme-dark", params.platform === "tiktok" ||
-      (params.platform === "facebook" && params.placement === "story") ||
+      (params.platform === "facebook" && (params.placement === "story" || params.placement === "reels")) ||
+      (params.platform === "instagram" && params.placement !== "feed") ||
       (params.platform === "youtube" && params.placement === "shorts"));
     root.innerHTML = RENDERERS[params.platform](params);
     wireSeeMore(root);
     wireCarousels(root);
     wireVideos(root, params);
     wireTikTok(root);
+    wireHotCtas(root);
+    wireInstream(root);
     wireYouTubeTime(root);
     console.info("[ad-mockup] v" + VERSION + " platform=" + params.platform +
       " placement=" + params.placement + " format=" + params.format);
