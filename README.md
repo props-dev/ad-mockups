@@ -88,7 +88,7 @@ OpenAPI tool (Swagger UI, Redoc, a client generator) to explore or build request
 openapi: 3.1.0
 info:
   title: Props Ad Mockup Renderer
-  version: 1.6.1
+  version: 1.6.2
   description: >
     Self-contained HTML renderer for social ad-placement mockups. No server, no
     build, no JSON — a GET with a query string returns a rendered preview. Params
@@ -231,7 +231,8 @@ paths:
 `postMessage` protocol to its parent frame — part of the embed contract:
 
 - **Emits** `{ type: "ad-mockup:height", height, version }` on every resize (via
-  `ResizeObserver`) so the host can auto-size the iframe.
+  `ResizeObserver`) so the host can auto-size the iframe. `height` is the rendered
+  mockup's own height, so a frame taller than the card shrinks to fit it.
 - **Accepts** `{ type: "ad-mockup:params", params }` — merges `params` (same keys as the
   query params) and re-renders in place with no reload (see Pattern C below).
 

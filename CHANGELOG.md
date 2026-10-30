@@ -4,6 +4,15 @@ Versions track the `VERSION` const in `v1/ad-mockup.html` (mirrored in the
 `ad-mockup-version` meta tag). Param changes within `v1/` are additive-only;
 breaking changes ship as a new `v2/` directory.
 
+## 1.6.2 - 2026-10-30
+
+- Fix: `ad-mockup:height` reported the page body's height, which is never less
+  than the frame's (`html, body { height: 100% }`). A card shorter than its
+  frame, such as Google, YouTube feed or Instagram feed, left the frame at its
+  first guessed height with blank space below. It now reports the mockup's own
+  height and re-reports when the content changes (for example See more).
+  Full-screen placements still report the frame height. No params change.
+
 ## 1.6.1 - 2026-10-30
 
 - Fix: the carousel Next arrow sat under the right-hand action rail on TikTok,
