@@ -263,7 +263,7 @@ test.describe("platform renderers", () => {
   test("youtube: video format defaults to tap-to-play (no autoplay)", async ({ page }) => {
     await page.goto(PAGE + "?platform=youtube&format=video&poster=" + encodeURIComponent(PX_RED));
     await expect(page.locator(".play-overlay")).toBeVisible();
-    await expect(page.locator(".yt-ad-badge")).toHaveText("Ad");
+    await expect(page.locator(".yt-ad-badge")).toHaveText("Ad", { useInnerText: true });
   });
 
   test("youtube shorts: full-bleed 9:16 with action rail, Sponsored, CTA", async ({ page }) => {
@@ -290,7 +290,7 @@ test.describe("platform renderers", () => {
     await expect(page.locator(".ytd")).toBeVisible();
     // desktop stays light (only shorts goes dark)
     expect(await page.locator("body.theme-dark").count()).toBe(0);
-    await expect(page.locator(".ytd-adchip")).toHaveText("Ad");
+    await expect(page.locator(".ytd-adchip")).toHaveText("Ad", { useInnerText: true });
     await expect(page.locator(".ytd-skip")).toContainText("Skip");
     await expect(page.locator(".ytd-companion-cta")).toHaveText("Visit site");
     await expect(page.locator(".ytd-companion-sub")).toHaveText("shop.acme.com");
@@ -447,14 +447,18 @@ test.describe("platform renderers", () => {
     await page.route((url) => url.hostname === "cdn.example.com", (route) => route.abort());
     await page.goto(PAGE + "?platform=facebook&placement=instream&format=video&media=" +
       encodeURIComponent("https://cdn.example.com/ad.mp4"));
-    await expect(page.locator(".js-fbi-left")).toHaveText("0:15");
+    // no invented length: the chip reads "Ad" and the bar is empty until metadata loads
+    await expect(page.locator(".js-fbi-time")).toBeHidden();
+    await expect(page.locator(".fbi-adchip")).toHaveText("Ad", { useInnerText: true });
+    expect(await page.locator(".js-fbi-fill").evaluate((el) => getComputedStyle(el).width)).toBe("0px");
     await page.evaluate(() => {
       const video = document.querySelector(".fbi .js-video");
       Object.defineProperty(video, "duration", { value: 30 });
       Object.defineProperty(video, "currentTime", { value: 10 });
       video.dispatchEvent(new Event("timeupdate"));
     });
-    await expect(page.locator(".js-fbi-left")).toHaveText("0:20");
+    await expect(page.locator(".js-fbi-time")).toBeVisible();
+    await expect(page.locator(".fbi-adchip")).toHaveText("Ad · 0:20", { useInnerText: true });
     const width = await page.locator(".js-fbi-fill").evaluate((el) => el.style.width);
     expect(width).toBe("33.33%");
   });

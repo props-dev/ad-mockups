@@ -11,7 +11,8 @@ breaking changes ship as a new `v2/` directory.
   existing Facebook feed and story they cover the Meta placements that carry
   most Props spend.
 - In-stream reads the creative's real length for its `Ad · m:ss` countdown and
-  progress bar. Neighbouring content (host video, other listings) is drawn as
+  progress bar; until the video's metadata loads, or for a still image, the chip
+  reads just `Ad` and the bar is empty. Neighbouring content (host video, other listings) is drawn as
   neutral skeleton, never invented.
 - Add `saves` for the TikTok bookmark count. When it is empty the bookmark
   still shows `views`, so existing URLs render as before.

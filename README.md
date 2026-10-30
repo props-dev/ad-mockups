@@ -12,7 +12,7 @@ control platform, format, creator, ad copy, and media.
 | `facebook` | Mobile feed sponsored post (header, primary text, media, link card + CTA, reactions, action bar) |
 | `facebook` + `placement=story` | Story ad (full-bleed 9:16, segmented progress bar, Sponsored header, swipe-up chevron + CTA pill) — dark theme |
 | `facebook` + `placement=reels` | Reels ad (full-bleed 9:16, like/comment/share rail, page row with Follow, caption, CTA that turns FB blue) — dark theme |
-| `facebook` + `placement=instream` | In-stream video ad (16:9 player with `Ad · m:ss` countdown read from the video, progress bar, attachment row with page, headline, domain and CTA; the host video and post are neutral skeleton) |
+| `facebook` + `placement=instream` | In-stream video ad (16:9 player with `Ad · m:ss` countdown read from the video, shown only once its length is known, progress bar, attachment row with page, headline, domain and CTA; the host video and post are neutral skeleton) |
 | `facebook` + `placement=marketplace` | Marketplace sponsored tile (1:1 media, headline, `Sponsored · page`, CTA link) in the Today's picks grid; neighbouring listings are skeleton |
 | `instagram` | Feed ad (username + Sponsored header, media, CTA strip that turns IG blue, heart/comment/send/save row, likes, caption with "more", comments link) |
 | `instagram` + `placement=reels` | Reels ad (full-bleed 9:16, outline heart/comment/send rail with audio tile, username row with Follow, caption, Original audio line, CTA) — dark theme |

@@ -482,11 +482,11 @@
   .fbi-player .media-shell { aspect-ratio: 16 / 9; }
   /* a vertical creative plays letterboxed inside the host's 16:9 player */
   .fbi-player .media-shell > .media-el, .fbi-player .car-item > .media-el { object-fit: contain; }
-  .fbi-adchip { position: absolute; left: 10px; top: 10px; z-index: 4; display: flex; align-items: center; gap: 6px;
+  .fbi-adchip { position: absolute; left: 10px; top: 10px; z-index: 4; display: flex; align-items: center; white-space: pre;
     background: rgba(0,0,0,.6); color: #fff; font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
   .fbi-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; z-index: 4;
     background: rgba(255,255,255,.3); }
-  .fbi-progress-fill { display: block; width: 30%; height: 100%; background: #f7b928; }
+  .fbi-progress-fill { display: block; width: 0; height: 100%; background: #f7b928; }
   .fbi-attach { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #f0f2f5; }
   .fbi-attach .avatar { width: 36px; height: 36px; font-size: 14px; }
   .fbi-attach-text { flex: 1; min-width: 0; }
@@ -1039,7 +1039,7 @@ window.AD_MOCKUP_PARAMS = {
       '<div class="fbi-host"><span class="fbi-host-av"></span><span class="fbi-host-lines">' +
         '<span class="fbi-bar" style="width:46%"></span><span class="fbi-bar" style="width:28%"></span></span></div>' +
       '<div class="fbi-player">' + mediaHtml(player, { dark: true }) +
-        '<span class="fbi-adchip">Ad &middot; <span class="js-fbi-left">0:15</span></span>' +
+        '<span class="fbi-adchip">Ad<span class="js-fbi-time" hidden> &middot; <span class="js-fbi-left"></span></span></span>' +
         '<span class="fbi-progress"><span class="fbi-progress-fill js-fbi-fill"></span></span></div>' +
       '<div class="fbi-attach">' + avatarHtml(p) +
         '<div class="fbi-attach-text"><div class="fbi-name">' + esc(p.creator) +
@@ -1373,7 +1373,10 @@ window.AD_MOCKUP_PARAMS = {
     });
   }
   /* in-stream: the Ad chip counts down the creative's real length */
+  /* the countdown shows only the creative's real length: until a video's
+     metadata loads (or for a still image) the chip reads just "Ad" */
   function wireInstream(root) {
+    var time = root.querySelector(".js-fbi-time");
     var left = root.querySelector(".js-fbi-left");
     var fill = root.querySelector(".js-fbi-fill");
     var video = root.querySelector(".fbi .js-video");
@@ -1381,6 +1384,7 @@ window.AD_MOCKUP_PARAMS = {
     function sync() {
       var d = video.duration;
       if (!isFinite(d) || d <= 0) return;
+      if (time) time.hidden = false;
       left.textContent = fmtTime(d - video.currentTime);
       if (fill) fill.style.width = (video.currentTime / d * 100).toFixed(2) + "%";
     }
