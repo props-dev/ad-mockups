@@ -8,7 +8,7 @@
      object/fetch even if an escaping bug slipped through. script-src must stay
      'unsafe-inline' because the whole app is the inline script below. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src https: data:; media-src https:; base-uri 'none'; form-action 'none'">
-<meta name="ad-mockup-version" content="1.6.0">
+<meta name="ad-mockup-version" content="1.6.1">
 <title>Ad Preview</title>
 <style>
   /* ============ base ============ */
@@ -232,6 +232,8 @@
   .tt-cta svg { width: 14px; height: 14px; fill: #fff; }
   .tt .car-dots { bottom: auto; top: 46px; }
   .tt .car-counter { top: 46px; }
+  /* above the rail and caption overlays (z-index 4); see placeNextArrows */
+  .tt .car-arrow { z-index: 5; }
   .tt .mute-btn { bottom: auto; top: 52px; right: 12px; }
   /* nav=1: the app's bottom tab bar under a full-height screen */
   .tt.tt-has-nav { display: flex; flex-direction: column; }
@@ -349,6 +351,7 @@
   .yts-cta svg { width: 13px; height: 13px; fill: #0f0f0f; }
   .yts .car-dots { bottom: auto; top: 12px; }
   .yts .car-counter { top: 12px; }
+  .yts .car-arrow { z-index: 5; }
   .yts .mute-btn { bottom: auto; top: 14px; right: 12px; }
 
   /* ============================================================
@@ -461,6 +464,7 @@
   .vx-cta svg { width: 13px; height: 13px; fill: currentColor; }
   .vx .car-dots { bottom: auto; top: 60px; }
   .vx .car-counter { top: 60px; }
+  .vx .car-arrow { z-index: 5; }
   .vx .mute-btn { bottom: auto; top: 62px; right: 12px; }
   /* FB Reels: solid FB-blue CTA once "hot"; IG: IG-blue */
   .fbr .vx-cta.hot { background: #0866ff; }
@@ -634,7 +638,7 @@ window.AD_MOCKUP_PARAMS = {
 
   /* Bump on any change; keep in sync with the ad-mockup-version meta tag.
      Param changes must be additive-only — Bubble pages depend on this contract. */
-  var VERSION = "1.6.0";
+  var VERSION = "1.6.1";
 
   /* ---------------- defaults ---------------- */
   var COMMON = {
@@ -1337,7 +1341,30 @@ window.AD_MOCKUP_PARAMS = {
         track.scrollBy({ left: track.clientWidth, behavior: "smooth" });
       });
     });
+    placeNextArrows();
   }
+  /* Full-screen templates draw an action rail over the right edge of the media,
+     above the arrows. Sit Next just left of the rail's measured edge (long counts
+     widen it) so it stays visible and clickable. When the rail is too short to
+     reach the arrow (counts=0), or there is no rail, Next keeps the default inset. Re-run on resize: a frame first laid out hidden has no size. */
+  function placeNextArrows() {
+    document.querySelectorAll(".js-carousel").forEach(function (car) {
+      var shell = car.closest(".tt, .vx, .yts");
+      var rail = shell && shell.querySelector(".tt-rail, .vx-rail, .yts-rail");
+      var next = car.querySelector(".js-car-next");
+      if (!rail || !next) return;
+      next.style.right = "";
+      var railBox = rail.getBoundingClientRect();
+      if (!railBox.width) return;
+      var nextBox = next.getBoundingClientRect();
+      if (nextBox.bottom <= railBox.top || nextBox.top >= railBox.bottom) return;
+      var overlap = nextBox.right - railBox.left;
+      if (overlap > -10) {
+        next.style.right = (parseFloat(getComputedStyle(next).right) + overlap + 10) + "px";
+      }
+    });
+  }
+  window.addEventListener("resize", placeNextArrows);
   function wireVideos(root, p) {
     root.querySelectorAll(".js-video").forEach(function (video) {
       var shell = video.parentElement;
