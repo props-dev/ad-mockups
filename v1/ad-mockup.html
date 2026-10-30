@@ -1473,10 +1473,20 @@ window.AD_MOCKUP_PARAMS = {
      content, not the body: html and body are height: 100%, so the body's height
      is never less than the frame's and a short card could only ever grow it.
      Observe the body for frame resizes and the root for content changes. */
+  /* Full-screen templates fill the frame, so their own height is only the
+     frame's. They report at least a 9:16 phone at their width (plus the tab
+     bar), so a frame a host shrank for a short card grows back. */
   function postHeight() {
+    var height = root.getBoundingClientRect().height;
+    var shell = root.firstElementChild;
+    if (shell && shell.matches(".tt, .vx, .yts, .fbs")) {
+      var nav = shell.querySelector(".tt-nav");
+      height = Math.max(height, shell.getBoundingClientRect().width * 16 / 9 +
+        (nav ? nav.getBoundingClientRect().height : 0));
+    }
     try {
       parent.postMessage({ type: "ad-mockup:height",
-        height: Math.ceil(root.getBoundingClientRect().height), version: VERSION }, "*");
+        height: Math.ceil(height), version: VERSION }, "*");
     } catch (e) { /* no parent */ }
   }
   if ("ResizeObserver" in window) {
@@ -1492,6 +1502,8 @@ window.AD_MOCKUP_PARAMS = {
     if (!d || d.type !== "ad-mockup:params" || typeof d.params !== "object") return;
     window.AD_MOCKUP_PARAMS = Object.assign({}, window.AD_MOCKUP_PARAMS, d.params);
     render();
+    /* a new template can land at the same size, which the observer never sees */
+    postHeight();
   });
 })();
 </script>

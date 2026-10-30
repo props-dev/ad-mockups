@@ -661,6 +661,34 @@ test.describe("height report fits the content", () => {
     await expect.poll(last).toBe(569);
   });
 
+  test("full-screen tiktok in a frame shorter than 9:16 reports the 9:16 height", async ({ page }) => {
+    const last = await reports(page, "platform=tiktok", { width: 320, height: 300 });
+    await expect.poll(last).toBe(569);
+    const withNav = await reports(page, "platform=tiktok&nav=1", { width: 320, height: 300 });
+    await expect.poll(withNav).toBe(623);
+  });
+
+  test("an auto-sizing host grows back to a phone after a short card", async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 1000 });
+    await page.setContent(
+      `<script>window.h = []; addEventListener("message", (e) => {
+        if (!e.data || e.data.type !== "ad-mockup:height") return;
+        window.h.push(e.data.height);
+        document.getElementById("f").style.height = e.data.height + "px"; });</script>` +
+      `<iframe id="f" sandbox="allow-scripts" style="border:0;width:375px;height:667px"
+        src="http://127.0.0.1:4173${PAGE}"></iframe>`
+    );
+    // like the Media Auditor: a constant src, params arrive by postMessage
+    await expect.poll(() => page.evaluate(() => window.h.length)).toBeGreaterThan(0);
+    const post = (params) => page.locator("#f").evaluate((f, params) =>
+      f.contentWindow.postMessage({ type: "ad-mockup:params", params }, "*"), params);
+    const frameHeight = () => page.locator("#f").evaluate((f) => f.getBoundingClientRect().height);
+    await post({ platform: "google" });
+    await expect.poll(frameHeight).toBeLessThan(500);
+    await post({ platform: "tiktok" });
+    await expect.poll(frameHeight).toBe(667);
+  });
+
   /* A host that applies every report to the frame, as the Media Auditor does,
      must settle on the content height instead of chasing its own resize. */
   const TEMPLATES = [
@@ -683,12 +711,13 @@ test.describe("height report fits the content", () => {
           `<iframe id="f" sandbox="allow-scripts" style="border:0;width:${width}px;height:620px"
             src="http://127.0.0.1:4173${PAGE}?${query}&format=${format}"></iframe>`
         );
-        await expect.poll(() => page.evaluate(() => window.h.length)).toBeGreaterThan(0);
-        await page.waitForTimeout(600);
-        const settled = await page.evaluate(() => window.h.length);
-        await page.waitForTimeout(400);
+        // settled: no new report across a 300ms window, polled so a slow runner just waits longer
+        await expect.poll(async () => {
+          const before = await page.evaluate(() => window.h.length);
+          await page.waitForTimeout(300);
+          return before > 0 && before === await page.evaluate(() => window.h.length);
+        }, { timeout: 10000 }).toBe(true);
         const h = await page.evaluate(() => window.h);
-        expect(h.length, `still resizing: ${h.join(",")}`).toBe(settled);
         expect(h.length, `too many reports: ${h.join(",")}`).toBeLessThan(8);
         expect(h[h.length - 1]).toBeGreaterThan(150);
         expect(h[h.length - 1]).toBe(await contentHeight(page));

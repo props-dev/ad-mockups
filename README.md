@@ -231,8 +231,11 @@ paths:
 `postMessage` protocol to its parent frame — part of the embed contract:
 
 - **Emits** `{ type: "ad-mockup:height", height, version }` on every resize (via
-  `ResizeObserver`) so the host can auto-size the iframe. `height` is the rendered
-  mockup's own height, so a frame taller than the card shrinks to fit it.
+  `ResizeObserver`, and after each `ad-mockup:params` update) so the host can
+  auto-size the iframe. `height` is the rendered mockup's own height, so a frame
+  taller than the card shrinks to fit it. Full-screen placements (TikTok, Reels,
+  Shorts, Stories) fill the frame, so they report the frame height but never less
+  than a 9:16 phone at their width, plus the tab bar with `nav=1`.
 - **Accepts** `{ type: "ad-mockup:params", params }` — merges `params` (same keys as the
   query params) and re-renders in place with no reload (see Pattern C below).
 

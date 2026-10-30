@@ -10,8 +10,11 @@ breaking changes ship as a new `v2/` directory.
   than the frame's (`html, body { height: 100% }`). A card shorter than its
   frame, such as Google, YouTube feed or Instagram feed, left the frame at its
   first guessed height with blank space below. It now reports the mockup's own
-  height and re-reports when the content changes (for example See more).
-  Full-screen placements still report the frame height. No params change.
+  height and re-reports when the content changes (for example See more) or
+  new params arrive by `ad-mockup:params`. Full-screen placements still report
+  the frame height, but never less than a 9:16 phone at their width (plus the
+  `nav=1` tab bar), so a host that shrank the frame for a short card grows it
+  back when a full-screen ad follows. No params change.
 
 ## 1.6.1 - 2026-10-30
 
