@@ -241,7 +241,7 @@ test.describe("platform renderers", () => {
   test("tiktok: nav=1 adds the tab bar below the screen and keeps the whole ad in view", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 623 });
     await page.goto(PAGE + "?platform=tiktok&nav=1&cta=Learn%20more");
-    await expect(page.locator(".tt-nav-item")).toHaveText(["Home", "Friends", "", "Inbox", "Profile"]);
+    await expect(page.locator(".tt-nav-item")).toHaveText(["Home", "Friends", "", "Inbox", "Me"]);
     const screen = await page.locator(".tt-screen").boundingBox();
     const nav = await page.locator(".tt-nav").boundingBox();
     const top = await page.locator(".tt-topnav").boundingBox();
@@ -251,6 +251,181 @@ test.describe("platform renderers", () => {
     expect(Math.round(nav.y + nav.height)).toBe(623);
     expect(top.y).toBeGreaterThanOrEqual(0);
     expect(cta.y + cta.height).toBeLessThanOrEqual(screen.y + screen.height);
+    // the bar is 54px at any width (README)
+    await page.setViewportSize({ width: 420, height: 800 });
+    await page.goto(PAGE + "?platform=tiktok&nav=1");
+    expect(Math.round((await page.locator(".tt-nav").boundingBox()).height)).toBe(54);
+  });
+
+  /* TikTok's own ad preview (TikTok Ads Manager) is the reference for the layout */
+  const TT_THREE = encodeURIComponent(PX_RED + "|" + PX_BLUE + "|" + PX_RED);
+  test("tiktok: matches TikTok's preview chrome: no LIVE, no audio line, slim red CTA", async ({ page }) => {
+    await page.goto(PAGE + "?platform=tiktok&cta=Sign%20Up");
+    await expect(page.locator(".tt")).not.toContainText("LIVE");
+    await expect(page.locator(".tt")).not.toContainText("Original audio");
+    await expect(page.locator(".tt-sponsored")).toHaveText("Sponsored");
+    const cta = page.locator(".tt-cta");
+    await expect(cta).toHaveText("Sign Up");
+    expect(await cta.locator("svg").count()).toBe(0);
+    // red from the first frame, text centered
+    expect(await cta.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(254, 44, 85)");
+    expect(await cta.evaluate((el) => getComputedStyle(el).justifyContent)).toBe("center");
+  });
+
+  test("tiktok: statusbar is off by default; statusbar=1 puts 9:41 above the tabs", async ({ page }) => {
+    await page.goto(PAGE + "?platform=tiktok");
+    await expect(page.locator(".tt-status")).toHaveCount(0);
+    await page.goto(PAGE + "?platform=tiktok&statusbar=1");
+    await expect(page.locator(".tt-status")).toContainText("9:41");
+    const status = await page.locator(".tt-status").boundingBox();
+    const tabs = await page.locator(".tt-topnav").boundingBox();
+    expect(status.y).toBe(0);
+    expect(tabs.y).toBeGreaterThanOrEqual(status.y + status.height);
+  });
+
+  test("tiktok: the Photo badge shows on carousels, and on a single image only with photo=1", async ({ page }) => {
+    const badge = async (query) => {
+      await page.goto(PAGE + "?platform=tiktok&byline=name&creator=Uyen&media=" + TT_THREE + "&" + query);
+      await expect(page.locator(".tt-handle")).toHaveText("Uyen");
+      return page.locator(".tt-photo").count();
+    };
+    expect(await badge("format=carousel")).toBe(1);
+    await expect(page.locator(".tt-photo")).toHaveText("Photo");
+    // a single image may be a video ad's cover, so it needs the explicit flag
+    expect(await badge("format=image")).toBe(0);
+    expect(await badge("format=image&photo=1")).toBe(1);
+    expect(await badge("format=carousel&photo=0")).toBe(0);
+    expect(await badge("format=video")).toBe(0);
+  });
+
+  test("tiktok: a CTA label that wraps grows the button", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 569 });
+    await page.goto(PAGE + "?platform=tiktok&cta=" +
+      encodeURIComponent("Download the app today and get fifty percent off your very first order with code PROPS"));
+    const s = await page.locator(".tt-cta").evaluate((el) => ({
+      fits: el.scrollHeight <= el.clientHeight,
+      gap: el.getBoundingClientRect().top - document.querySelector(".tt-sponsored").getBoundingClientRect().bottom,
+    }));
+    expect(s.fits).toBe(true);
+    expect(s.gap).toBeGreaterThan(0);
+  });
+
+  test("tiktok: a CTA label with one long word wraps inside the button", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 569 });
+    await page.goto(PAGE + "?platform=tiktok&cta=" +
+      encodeURIComponent("www.anunusuallylonglandingpagedomainnameforus.com"));
+    const s = await page.locator(".tt-cta").evaluate((el) => ({
+      fits: el.scrollWidth <= el.clientWidth,
+      clear: el.getBoundingClientRect().right <= document.querySelector(".tt-rail").getBoundingClientRect().left,
+    }));
+    expect(s.fits).toBe(true);
+    expect(s.clear).toBe(true);
+  });
+
+  test("tiktok: a very long count cannot push the rail over the CTA", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 569 });
+    await page.goto(PAGE + "?platform=tiktok&likes=" + encodeURIComponent("12,345,678 likes"));
+    await expect(page.locator(".tt-rail-count").first()).toHaveText("12,345,678 likes");
+    const hit = await page.locator(".tt-cta").evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      return document.elementFromPoint(r.right - 2, r.top + r.height / 2) === el;
+    });
+    expect(hit).toBe(true);
+  });
+
+  test("tiktok: a long name ends in an ellipsis and keeps the Photo badge in view", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 569 });
+    await page.goto(PAGE + "?platform=tiktok&byline=name&verified=1&photo=1&creator=" +
+      encodeURIComponent("Automobile Club of Southern California Enterprises"));
+    const s = await page.evaluate(() => {
+      const name = document.querySelector(".tt-name"), stack = document.querySelector(".tt-bottom");
+      const right = parseFloat(getComputedStyle(stack).paddingRight);
+      const edge = stack.getBoundingClientRect().right - right;
+      return {
+        truncated: name.scrollWidth > name.clientWidth,
+        ellipsis: getComputedStyle(name).textOverflow,
+        photoInside: document.querySelector(".tt-photo").getBoundingClientRect().right <= edge + 0.5,
+        checkInside: document.querySelector(".tt-handle .verified").getBoundingClientRect().right <= edge + 0.5,
+      };
+    });
+    expect(s).toEqual({ truncated: true, ellipsis: "ellipsis", photoInside: true, checkInside: true });
+  });
+
+  test("tiktok: sizes scale with the frame width", async ({ page }) => {
+    const sizes = async (width) => {
+      await page.setViewportSize({ width, height: Math.round(width * 16 / 9) });
+      await page.goto(PAGE + "?platform=tiktok");
+      return page.evaluate(() => {
+        const w = (sel) => document.querySelector(sel).getBoundingClientRect().width;
+        return { avatar: w(".tt-rail-avatar .avatar"), icon: w(".tt-rail-item svg"), cta: w(".tt-cta") };
+      });
+    };
+    const small = await sizes(320), large = await sizes(406);
+    for (const k of ["avatar", "icon", "cta"]) {
+      expect(large[k] / small[k]).toBeCloseTo(406 / 320, 1);
+    }
+    // TikTok's proportions: avatar ~11.8% and CTA ~71% of the phone width
+    expect(small.avatar / 320).toBeCloseTo(0.118, 2);
+    expect(small.cta / 320).toBeCloseTo(0.708, 2);
+  });
+
+  test("tiktok: the caption scrim spans the width and does not block the rail", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 569 });
+    await page.goto(PAGE + "?platform=tiktok");
+    const bottom = await page.locator(".tt-bottom").boundingBox();
+    expect(Math.round(bottom.width)).toBe(320);
+    const hit = await page.evaluate(() => {
+      const d = document.querySelector(".tt-disc").getBoundingClientRect();
+      return document.elementFromPoint(d.left + d.width / 2, d.top + d.height / 2).closest(".tt-disc") !== null;
+    });
+    expect(hit).toBe(true);
+  });
+
+  test("tiktok carousel: dots sit just above the name, no counter, and follow See more", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 569 });
+    await page.goto(PAGE + "?platform=tiktok&format=carousel&media=" + TT_THREE +
+      "&copy=" + encodeURIComponent(LONG_COPY + " " + LONG_COPY));
+    await expect(page.locator(".js-car-counter")).toBeHidden();
+    const gap = () => page.evaluate(() => {
+      const dots = document.querySelector(".js-car-dots").getBoundingClientRect();
+      return document.querySelector(".tt-byline").getBoundingClientRect().top - dots.bottom;
+    });
+    const before = await gap();
+    expect(before).toBeGreaterThanOrEqual(2);
+    expect(before).toBeLessThanOrEqual(14);
+    await page.locator(".js-see-more").click();
+    await expect.poll(gap).toBeCloseTo(before, 0);
+  });
+
+  test("tiktok carousel: an expanded long caption scrolls and keeps the name and dots below the tabs", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 569 });
+    await page.goto(PAGE + "?platform=tiktok&format=carousel&media=" + TT_THREE +
+      "&copy=" + encodeURIComponent(LONG_COPY.repeat(8)));
+    await page.locator(".js-see-more").click();
+    const s = await page.evaluate(() => {
+      const box = (sel) => document.querySelector(sel).getBoundingClientRect();
+      const tabs = box(".tt-topnav").bottom;
+      const caption = document.querySelector(".tt-caption");
+      return { tabs, name: box(".tt-byline").top, dots: box(".js-car-dots").top,
+        height: caption.getBoundingClientRect().height, scrolls: caption.scrollHeight > caption.clientHeight };
+    });
+    expect(s.name).toBeGreaterThanOrEqual(s.tabs);
+    expect(s.dots).toBeGreaterThanOrEqual(s.tabs);
+    expect(s.height).toBeLessThanOrEqual(569 * 0.38 + 1);
+    expect(s.scrolls).toBe(true);
+  });
+
+  test("tiktok carousel: a 35-image carousel keeps every dot clear of the rail", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 569 });
+    await page.goto(PAGE + "?platform=tiktok&format=carousel&media=" +
+      encodeURIComponent(Array(35).fill(PX_RED).join("|")));
+    const s = await page.evaluate(() => {
+      const rail = document.querySelector(".tt-rail").getBoundingClientRect().left;
+      const dots = [...document.querySelectorAll(".js-car-dots .dot")].map((d) => d.getBoundingClientRect().right);
+      return { rail, count: dots.length, right: Math.max(...dots) };
+    });
+    expect(s.count).toBe(35);
+    expect(s.right).toBeLessThan(s.rail);
   });
 
   test("google: description row hidden when empty, shown when set", async ({ page }) => {
@@ -602,12 +777,14 @@ test.describe("carousel arrows are clickable on every template", () => {
   test("tiktok in the auditor frame: Next and Prev advance by click", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 569 });
     await page.goto(PAGE + "?platform=tiktok&format=carousel&media=" + THREE);
+    const lit = page.locator(".js-car-dots .dot.active");
+    const litIndex = () => lit.evaluate((d) => Array.from(d.parentElement.children).indexOf(d));
     await page.locator(".js-car-next").click({ timeout: 2000 });
-    await expect(page.locator(".js-car-counter")).toHaveText("2/3");
+    await expect.poll(litIndex).toBe(1);
     await page.locator(".js-car-next").click({ timeout: 2000 });
-    await expect(page.locator(".js-car-counter")).toHaveText("3/3");
+    await expect.poll(litIndex).toBe(2);
     await page.locator(".js-car-prev").click({ timeout: 2000 });
-    await expect(page.locator(".js-car-counter")).toHaveText("2/3");
+    await expect.poll(litIndex).toBe(1);
   });
 
   test("a frame laid out at zero size places Next once it gets a size", async ({ page }) => {

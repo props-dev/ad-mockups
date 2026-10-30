@@ -8,7 +8,7 @@
      object/fetch even if an escaping bug slipped through. script-src must stay
      'unsafe-inline' because the whole app is the inline script below. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src https: data:; media-src https:; base-uri 'none'; form-action 'none'">
-<meta name="ad-mockup-version" content="1.6.2">
+<meta name="ad-mockup-version" content="1.7.0">
 <title>Ad Preview</title>
 <style>
   /* ============ base ============ */
@@ -172,81 +172,103 @@
 
   /* ============================================================
      TIKTOK in-feed
+     Sizes are multiples of --u, 1% of the phone's width, so the screen keeps
+     the proportions of TikTok's own ad preview at any frame size. Browsers
+     without container query units size it as a 375px phone.
      ============================================================ */
   .tt { position: relative; width: 100%; max-width: 420px; height: 100dvh; max-height: 100vh;
-    background: #000; color: #fff; overflow: hidden;
+    background: #000; color: #fff; overflow: hidden; container-type: inline-size; --u: 3.75px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  @supports (width: 1cqw) { .tt { --u: 1cqw; } }
   .tt .media-shell { position: absolute; inset: 0; height: 100%; }
   .tt .carousel, .tt .car-track, .tt .car-item { height: 100%; }
-  .tt-topnav { position: absolute; top: 0; left: 0; right: 0; z-index: 4;
-    display: flex; align-items: center; justify-content: center; gap: 18px;
-    padding: 14px 16px 10px; font-size: 16px;
+  .tt-top { position: absolute; top: 0; left: 0; right: 0; z-index: 4;
     background: linear-gradient(rgba(0,0,0,.35), transparent); }
-  .tt-tab { color: rgba(255,255,255,.65); font-weight: 600; }
+  /* statusbar=1: the phone's status bar above the tabs */
+  .tt-status { display: flex; align-items: center; justify-content: space-between;
+    height: calc(8 * var(--u)); padding: 0 calc(6 * var(--u)) 0 calc(9 * var(--u)); font-size: calc(4.3 * var(--u)); font-weight: 600; }
+  .tt-status svg { height: calc(3 * var(--u)); width: auto; fill: #fff; }
+  .tt-topnav { position: relative; display: flex; align-items: center; justify-content: center;
+    gap: calc(8 * var(--u)); padding: calc(3.3 * var(--u)) calc(4 * var(--u)); font-size: calc(4.2 * var(--u)); }
+  .tt-tab { color: rgba(255,255,255,.7); font-weight: 600; }
   .tt-tab.active { color: #fff; position: relative; }
-  .tt-tab.active::after { content: ""; position: absolute; left: 25%; right: 25%; bottom: -6px;
-    height: 3px; background: #fff; border-radius: 2px; }
-  .tt-search { position: absolute; right: 14px; top: 13px; }
-  .tt-search svg { width: 20px; height: 20px; fill: #fff; }
-  .tt-live { position: absolute; left: 14px; top: 13px; font-size: 15px; font-weight: 600;
-    color: rgba(255,255,255,.85); }
-  /* right action rail */
-  .tt-rail { position: absolute; right: 8px; bottom: 120px; z-index: 4;
-    display: flex; flex-direction: column; align-items: center; gap: 18px; }
-  .tt-rail-avatar { position: relative; margin-bottom: 4px; }
-  .tt-rail-avatar .avatar { width: 46px; height: 46px; border: 1.5px solid #fff; font-size: 18px; }
-  .tt-follow { position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%);
-    width: 19px; height: 19px; border-radius: 50%; background: #fe2c55;
+  .tt-tab.active::after { content: ""; position: absolute; left: 50%; width: calc(6 * var(--u)); margin-left: calc(-3 * var(--u));
+    bottom: calc(-1.6 * var(--u)); height: calc(.6 * var(--u)); background: #fff; border-radius: calc(.3 * var(--u)); }
+  .tt-search { position: absolute; right: calc(4 * var(--u)); top: 50%; transform: translateY(-50%); display: flex; }
+  .tt-search svg { width: calc(5.4 * var(--u)); height: calc(5.4 * var(--u)); fill: #fff; }
+  /* right action rail, anchored so the disc lines up with the CTA */
+  .tt-rail { position: absolute; right: calc(1.7 * var(--u)); bottom: calc(3.7 * var(--u)); z-index: 4;
+    display: flex; flex-direction: column; align-items: center; gap: calc(4.5 * var(--u)); }
+  .tt-rail-avatar { position: relative; margin-bottom: calc(1.2 * var(--u)); }
+  .tt-rail-avatar .avatar { width: calc(11.8 * var(--u)); height: calc(11.8 * var(--u)); border: 1.5px solid #fff; font-size: calc(4.6 * var(--u)); }
+  .tt-follow { position: absolute; left: 50%; bottom: calc(-2.3 * var(--u)); transform: translateX(-50%);
+    width: calc(4.6 * var(--u)); height: calc(4.6 * var(--u)); border-radius: 50%; background: #fe2c55;
     display: flex; align-items: center; justify-content: center; }
-  .tt-follow svg { width: 9px; height: 9px; fill: #fff; }
-  .tt-rail-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-  .tt-rail.no-counts .tt-rail-item { min-height: 47px; }
-  .tt-rail-item svg { width: 30px; height: 30px; fill: #fff;
+  .tt-follow svg { width: calc(2.4 * var(--u)); height: calc(2.4 * var(--u)); fill: #fff; }
+  .tt-rail-item { display: flex; flex-direction: column; align-items: center; gap: calc(.6 * var(--u)); }
+  .tt-rail.no-counts .tt-rail-item { min-height: calc(11.8 * var(--u)); }
+  .tt-rail-item svg { width: calc(7.4 * var(--u)); height: calc(7.4 * var(--u)); fill: #fff;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
-  .tt-rail-count { font-size: 12px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
-  .tt-disc { width: 38px; height: 38px; border-radius: 50%; margin-top: 2px;
+  /* capped so a long count cannot push the rail over the CTA */
+  .tt-rail-count { font-size: calc(3.2 * var(--u)); font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,.5);
+    max-width: calc(20 * var(--u)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tt-disc { width: calc(9.9 * var(--u)); height: calc(9.9 * var(--u)); border-radius: 50%; margin-top: calc(1.1 * var(--u));
     background: radial-gradient(circle at center, #333 34%, #111 40%, #2c2c2c 58%, #111 78%);
     display: flex; align-items: center; justify-content: center;
     animation: tt-spin 6s linear infinite; }
-  .tt-disc .avatar { width: 20px; height: 20px; font-size: 8px; }
+  .tt-disc .avatar { width: calc(5.2 * var(--u)); height: calc(5.2 * var(--u)); font-size: calc(2 * var(--u)); }
   @keyframes tt-spin { to { transform: rotate(360deg); } }
-  /* bottom-left stack */
-  .tt-bottom { position: absolute; left: 0; right: 64px; bottom: 0; z-index: 4;
-    padding: 0 14px 14px; background: linear-gradient(transparent, rgba(0,0,0,.45)); }
-  .tt-handle { font-size: 17px; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,.5);
-    display: flex; align-items: center; gap: 5px; }
-  .tt-handle .verified svg { width: 14px; height: 14px; fill: #20d5ec; }
-  .tt-caption { font-size: 15px; line-height: 1.35; margin-top: 5px;
-    text-shadow: 0 1px 2px rgba(0,0,0,.5); overflow-wrap: break-word; }
-  .tt-sponsored { display: inline-flex; align-items: center; gap: 4px; margin-top: 7px;
-    font-size: 12px; font-weight: 500; color: rgba(255,255,255,.75); }
-  .tt-sponsored svg { width: 11px; height: 11px; fill: rgba(255,255,255,.75); }
-  .tt-music { display: flex; align-items: center; gap: 6px; margin-top: 7px; font-size: 14px;
-    text-shadow: 0 1px 2px rgba(0,0,0,.5); }
-  .tt-music svg { width: 13px; height: 13px; fill: #fff; flex-shrink: 0; }
-  .tt-music span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tt-cta { display: flex; align-items: center; justify-content: space-between; margin-top: 12px;
-    width: 100%; padding: 11px 14px; border-radius: 8px; font-size: 15px; font-weight: 600;
-    color: #fff; background: rgba(255,255,255,.22); transition: background .5s; }
-  .tt-cta.hot { background: #fe2c55; }
-  .tt-cta svg { width: 14px; height: 14px; fill: #fff; }
-  .tt .car-dots { bottom: auto; top: 46px; }
-  .tt .car-counter { top: 46px; }
+  /* bottom-left stack; the scrim spans the full width and lets clicks through
+     to the rail and media */
+  .tt-bottom { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+    padding: 0 calc(26 * var(--u)) calc(4.2 * var(--u)) calc(3.2 * var(--u)); pointer-events: none; }
+  .tt-bottom::before { content: ""; position: absolute; z-index: -1; left: 0; right: 0; bottom: 0;
+    top: calc(-16 * var(--u)); background: linear-gradient(transparent, rgba(0,0,0,.45)); }
+  .tt-bottom > * { pointer-events: auto; }
+  .tt-byline { display: flex; align-items: center; gap: calc(2 * var(--u)); min-width: 0; }
+  .tt-handle { font-size: calc(4.2 * var(--u)); font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,.5);
+    display: flex; align-items: center; gap: calc(1.3 * var(--u)); min-width: 0; }
+  .tt-name { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tt-handle .verified { flex-shrink: 0; display: flex; }
+  .tt-handle .verified svg { width: calc(3.5 * var(--u)); height: calc(3.5 * var(--u)); fill: #20d5ec; }
+  .tt-photo { flex-shrink: 0; display: inline-flex; align-items: center; gap: calc(1 * var(--u));
+    padding: calc(.3 * var(--u)) calc(1.2 * var(--u)); border-radius: calc(.8 * var(--u)); background: rgba(0,0,0,.2);
+    font-size: calc(3.2 * var(--u)); font-weight: 600; }
+  .tt-photo svg { width: calc(3.2 * var(--u)); height: calc(3.2 * var(--u)); fill: #fff; }
+  /* an expanded caption scrolls inside a bounded panel, as .vx-copy does */
+  .tt-caption { font-size: calc(3.6 * var(--u)); line-height: 1.38; margin-top: calc(1.4 * var(--u)); color: rgba(255,255,255,.92);
+    text-shadow: 0 1px 2px rgba(0,0,0,.4); overflow-wrap: break-word;
+    max-height: 38vh; overflow-y: auto; scrollbar-width: none; }
+  .tt-caption::-webkit-scrollbar { display: none; }
+  .tt-sponsored { display: inline-block; margin-top: calc(2 * var(--u)); padding: calc(.4 * var(--u)) calc(1.2 * var(--u)); border-radius: calc(.6 * var(--u));
+    font-size: calc(2.8 * var(--u)); font-weight: 500; color: rgba(255,255,255,.85); background: rgba(80,80,80,.7); }
+  .tt-cta { display: flex; align-items: center; justify-content: center; margin-top: calc(3.9 * var(--u));
+    width: 100%; min-height: calc(8.6 * var(--u)); padding: calc(1.2 * var(--u)) calc(3 * var(--u));
+    border-radius: calc(1.2 * var(--u)); font-size: calc(3.4 * var(--u)); font-weight: 600; line-height: 1.25;
+    text-align: center; overflow-wrap: anywhere; word-break: break-word; color: #fff; background: #fe2c55; }
+  /* carousel dots sit just above the handle; --tt-bottom-h is the stack's
+     measured height (see wireTikTok). Equal insets keep them centered and
+     clear of the rail (count max-width plus its offset); long carousels wrap. */
+  .tt .car-dots { top: auto; bottom: calc(var(--tt-bottom-h, calc(36 * var(--u))) + calc(2.4 * var(--u)));
+    left: calc(22 * var(--u)); right: calc(22 * var(--u)); flex-wrap: wrap; gap: calc(1.2 * var(--u)); z-index: 4; }
+  .tt .car-dots .dot { width: calc(1.5 * var(--u)); height: calc(1.5 * var(--u)); }
+  .tt .car-counter { display: none; }
   /* above the rail and caption overlays (z-index 4); see placeNextArrows */
   .tt .car-arrow { z-index: 5; }
-  .tt .mute-btn { bottom: auto; top: 52px; right: 12px; }
+  .tt .mute-btn { bottom: auto; top: calc(16 * var(--u)); right: calc(3.5 * var(--u)); }
+  .tt.tt-has-status .mute-btn { top: calc(24 * var(--u)); }
   /* nav=1: the app's bottom tab bar under a full-height screen */
   .tt.tt-has-nav { display: flex; flex-direction: column; }
   .tt-screen { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
   .tt-nav { flex: 0 0 54px; display: flex; align-items: center; justify-content: space-around;
-    padding: 0 6px 2px; background: #000; border-top: 1px solid rgba(255,255,255,.12); }
-  .tt-nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 52px;
-    font-size: 10px; font-weight: 500; color: rgba(255,255,255,.62); }
+    padding: 0 calc(2 * var(--u)) calc(.6 * var(--u)); background: #000; border-top: 1px solid rgba(255,255,255,.12); }
+  .tt-nav-item { display: flex; flex-direction: column; align-items: center; gap: calc(.6 * var(--u)); width: calc(16 * var(--u));
+    font-size: calc(2.8 * var(--u)); font-weight: 500; color: rgba(255,255,255,.62); }
   .tt-nav-item.active { color: #fff; font-weight: 600; }
-  .tt-nav-item svg { width: 23px; height: 23px; fill: currentColor; }
-  .tt-create { position: relative; width: 40px; height: 27px; border-radius: 8px; background: #fff;
-    box-shadow: -3px 0 0 #25f4ee, 3px 0 0 #fe2c55; display: flex; align-items: center; justify-content: center; }
-  .tt-create svg { width: 15px; height: 15px; fill: #000; }
+  .tt-nav-item svg { width: calc(6.6 * var(--u)); height: calc(6.6 * var(--u)); fill: currentColor; }
+  .tt-create { position: relative; width: calc(11 * var(--u)); height: calc(7.4 * var(--u)); border-radius: calc(2 * var(--u)); background: #fff;
+    box-shadow: calc(-.9 * var(--u)) 0 0 #25f4ee, calc(.9 * var(--u)) 0 0 #fe2c55; display: flex; align-items: center; justify-content: center; }
+  .tt-create svg { width: calc(4.2 * var(--u)); height: calc(4.2 * var(--u)); fill: #000; }
 
   /* ============================================================
      GOOGLE Demand Gen / Discover card
@@ -624,6 +646,8 @@ window.AD_MOCKUP_PARAMS = {
   // omit: "saves,domain",              // fields the source does not have: drawn without them
                                         // (likes, comments, shares, saves, domain, description)
   // nav: "0",                          // 1 = app bottom tab bar (TikTok in-feed)
+  // statusbar: "0",                    // 1 = phone status bar above the tabs (TikTok in-feed)
+  // photo: "",                         // 1/0 = TikTok Photo badge; empty = carousels only
   // verified: "1",                     // blue check (facebook / tiktok)
   // autoplay: "1",                     // 0 = show tap-to-play overlay instead
   // ratio: "1:1",                      // media aspect, e.g. 1:1, 4:5, 1.91:1, 16:9
@@ -638,7 +662,7 @@ window.AD_MOCKUP_PARAMS = {
 
   /* Bump on any change; keep in sync with the ad-mockup-version meta tag.
      Param changes must be additive-only — Bubble pages depend on this contract. */
-  var VERSION = "1.6.2";
+  var VERSION = "1.7.0";
 
   /* ---------------- defaults ---------------- */
   var COMMON = {
@@ -664,6 +688,8 @@ window.AD_MOCKUP_PARAMS = {
     counts: "1",
     omit: "",
     nav: "0",
+    statusbar: "0",
+    photo: "",
     verified: "0",
     autoplay: "1",
     ratio: ""
@@ -766,6 +792,9 @@ window.AD_MOCKUP_PARAMS = {
     if (["handle", "name"].indexOf(p.byline) < 0) p.byline = "handle";
     p.counts = boolish(p.counts);
     p.nav = boolish(p.nav);
+    p.statusbar = boolish(p.statusbar);
+    /* TikTok Photo badge: carousels are photo posts; a single image may be a video's cover */
+    p.photo = isBlank(p.photo) ? p.format === "carousel" : boolish(p.photo);
     p.verified = boolish(p.verified);
     p.autoplay = boolish(p.autoplay);
     var omit = {};
@@ -880,6 +909,14 @@ window.AD_MOCKUP_PARAMS = {
     ext: svg("0 0 16 16", "M9 2h5v5h-1.5V4.6L7 10.1 5.9 9l5.5-5.5H9zM3.5 4H7v1.5H5v5.5h5.5v-2H12V12.5H3.5z"),
     fullscreen: svg("0 0 16 16", "M2 2h4v1.6H3.6V6H2zm8 0h4v4h-1.6V3.6H10zM3.6 10v2.4H6V14H2v-4zM14 10v4h-4v-1.6h2.4V10z"),
     skip: svg("0 0 16 16", "M3.5 3v10l6-5zm6.5 0h2v10h-2z"),
+    photo: '<svg viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M2.5 2h11a.5.5 0 0 1 .5.5v11a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5zM4 11.5h8L9.3 7.6 7.2 10.1 5.8 8.6zm6.6-7.4a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6z"/></svg>',
+    /* phone status bar: signal, wifi, battery */
+    status: '<svg viewBox="0 0 74 13" aria-hidden="true">' +
+      '<rect x="0" y="8.5" width="3" height="4" rx=".8"/><rect x="4.6" y="6.2" width="3" height="6.3" rx=".8"/>' +
+      '<rect x="9.2" y="3.6" width="3" height="8.9" rx=".8"/><rect x="13.8" y="1" width="3" height="11.5" rx=".8"/>' +
+      '<path d="M32 3.6a10.6 10.6 0 0 1 14 0l-1.5 1.6a8.4 8.4 0 0 0-11 0zm2.9 3.1a6.3 6.3 0 0 1 8.2 0l-1.5 1.6a4.2 4.2 0 0 0-5.2 0zm2.9 3.1a2 2 0 0 1 2.4 0L39 11.6z"/>' +
+      '<rect x="51.5" y="1.5" width="19" height="10" rx="2.6" fill="none" stroke="#fff" stroke-opacity=".45"/>' +
+      '<rect x="53.3" y="3.3" width="15.4" height="6.4" rx="1.3"/><rect x="71.6" y="4.8" width="1.6" height="3.4" rx=".8" fill-opacity=".45"/></svg>',
     download: svg("0 0 16 16", "M7 1.5h2v6.3l2.2-2.2 1.4 1.4L8 12 3.4 7l1.4-1.4L7 7.8zM2.5 12.5h11V14h-11z"),
     image: '<svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9.5" r="1.6"/><path d="m3 17 5-4.5 4 3.5 3.5-3 5.5 4"/></svg>'
   };
@@ -1160,13 +1197,19 @@ window.AD_MOCKUP_PARAMS = {
           '<span class="tt-nav-item">' + NAV.friends + 'Friends</span>' +
           '<span class="tt-nav-item"><span class="tt-create">' + I.plus + '</span></span>' +
           '<span class="tt-nav-item">' + NAV.inbox + 'Inbox</span>' +
-          '<span class="tt-nav-item">' + NAV.profile + 'Profile</span></nav>'
+          '<span class="tt-nav-item">' + NAV.profile + 'Me</span></nav>'
       : '';
-    return '<div class="tt' + (p.nav ? ' tt-has-nav' : '') + '">' + (p.nav ? '<div class="tt-screen">' : '') +
+    var status = p.statusbar
+      ? '<div class="tt-status" aria-hidden="true"><span>9:41</span>' + I.status + '</div>'
+      : '';
+    /* TikTok marks photo posts next to the name */
+    var photo = p.photo ? '<span class="tt-photo">' + I.photo + 'Photo</span>' : '';
+    return '<div class="tt' + (p.nav ? ' tt-has-nav' : '') + (p.statusbar ? ' tt-has-status' : '') + '">' +
+      (p.nav ? '<div class="tt-screen">' : '') +
       mediaHtml(p, { dark: true, fill: true }) +
-      '<div class="tt-topnav"><span class="tt-live">LIVE</span>' +
-        '<span class="tt-tab">Following</span><span class="tt-tab active">For You</span>' +
-        '<span class="tt-search">' + I.search + '</span></div>' +
+      '<div class="tt-top">' + status +
+        '<div class="tt-topnav"><span class="tt-tab">Following</span><span class="tt-tab active">For You</span>' +
+        '<span class="tt-search">' + I.search + '</span></div></div>' +
       '<div class="tt-rail' + (p.counts ? '' : ' no-counts') + '">' +
         '<div class="tt-rail-avatar">' + avatarHtml(p) +
           '<span class="tt-follow">' + I.plus + '</span></div>' +
@@ -1178,12 +1221,12 @@ window.AD_MOCKUP_PARAMS = {
         '<div class="tt-rail-item">' + I.share + countSpan(p, "shares", "tt-rail-count", p.shares) + '</div>' +
         '<div class="tt-disc">' + avatarHtml(p) + '</div></div>' +
       '<div class="tt-bottom">' +
-        '<div class="tt-handle">' + (p.byline === "name" ? esc(p.creator) : '@' + esc(p.handle)) +
-          (p.verified ? verifiedBadge : "") + '</div>' +
-        '<div class="tt-caption">' + copyHtml(p.copy, 70) + '</div>' +
-        '<div class="tt-sponsored">' + I.info + 'Sponsored</div>' +
-        '<div class="tt-music">' + I.note + '<span>' + esc(p.creator) + ' &middot; Original audio</span></div>' +
-        '<button class="tt-cta js-tt-cta"><span>' + esc(p.cta) + '</span>' + I.chevR + '</button>' +
+        '<div class="tt-byline"><div class="tt-handle"><span class="tt-name">' +
+          (p.byline === "name" ? esc(p.creator) : '@' + esc(p.handle)) + '</span>' +
+          (p.verified ? verifiedBadge : "") + '</div>' + photo + '</div>' +
+        '<div class="tt-caption">' + copyHtml(p.copy, 110, "more") + '</div>' +
+        '<div class="tt-sponsored">Sponsored</div>' +
+        '<button class="tt-cta">' + esc(p.cta) + '</button>' +
       '</div>' +
       (p.nav ? '</div>' + nav : '') +
     '</div>';
@@ -1389,9 +1432,20 @@ window.AD_MOCKUP_PARAMS = {
       });
     });
   }
+  /* TikTok's carousel dots sit just above the caption stack, which grows when
+     See more opens: publish the stack's height for the dots to sit on */
+  var ttStackObserver = null;
   function wireTikTok(root) {
-    var cta = root.querySelector(".js-tt-cta");
-    if (cta) setTimeout(function () { cta.classList.add("hot"); }, 1500);
+    if (ttStackObserver) ttStackObserver.disconnect();
+    var tt = root.querySelector(".tt");
+    var bottom = tt && tt.querySelector(".tt-bottom");
+    if (!bottom) return;
+    function place() { tt.style.setProperty("--tt-bottom-h", bottom.getBoundingClientRect().height + "px"); }
+    if ("ResizeObserver" in window) {
+      ttStackObserver = new ResizeObserver(place);
+      ttStackObserver.observe(bottom);
+    }
+    place();
   }
   /* Meta CTAs settle into their brand colour shortly after the ad appears */
   function wireHotCtas(root) {

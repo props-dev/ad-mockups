@@ -68,6 +68,8 @@ Empty values are ignored (safe for Bubble expressions that resolve empty).
 | `counts` | `1`/`0` - `0` hides engagement numbers and the Facebook feed counts row | `1` |
 | `omit` | comma- or pipe-separated fields the source does not have: `likes`, `comments`, `shares`, `saves`, `domain`, `description`. Each is left out of the mockup (its icon stays) instead of showing a default | empty |
 | `nav` | `1`/`0` - `1` adds the app's bottom tab bar under the screen (TikTok in-feed); the video area shrinks by the bar's 54px | `0` |
+| `photo` | `1`/`0` - TikTok's "Photo" badge beside the name, which TikTok shows on photo posts. Empty shows it for `format=carousel` only, since a single image may be a video's cover; pass `1` for a single-image photo post | empty |
+| `statusbar` | `1`/`0` - `1` adds the phone's status bar (9:41, signal, battery) above the tabs, as TikTok's own ad preview shows it (TikTok in-feed) | `0` |
 | `verified` | `1`/`0` — blue check (FB/Instagram/TikTok) | `0` |
 | `autoplay` | `1`/`0` — `0` shows tap-to-play overlay | `1` (YouTube: `0`) |
 | `ratio` | media aspect, e.g. `1:1`, `4:5`, `1.91:1`, `16:9` | FB `1:1`, Instagram `1:1`, TikTok `9:16`, Google `1.91:1`, YT `16:9`, Pinterest `2:3` |
@@ -88,7 +90,7 @@ OpenAPI tool (Swagger UI, Redoc, a client generator) to explore or build request
 openapi: 3.1.0
 info:
   title: Props Ad Mockup Renderer
-  version: 1.6.2
+  version: 1.7.0
   description: >
     Self-contained HTML renderer for social ad-placement mockups. No server, no
     build, no JSON — a GET with a query string returns a rendered preview. Params
@@ -206,6 +208,14 @@ paths:
         - name: nav
           in: query
           description: Show the app's bottom tab bar under the screen (TikTok in-feed). The bar is 54px tall and the video area shrinks by that much. Accepts 1/0 or true/false.
+          schema: { type: boolean, default: false }
+        - name: photo
+          in: query
+          description: TikTok's "Photo" badge beside the name, shown on photo posts. Three states - 1/true shows it, 0/false hides it, and empty (the default) shows it for format=carousel only, since a single image may be a video's cover.
+          schema: { type: string, enum: ["", "1", "0", "true", "false"], default: "" }
+        - name: statusbar
+          in: query
+          description: Show the phone's status bar (9:41, signal, battery) above the tabs, as TikTok's own ad preview does (TikTok in-feed). Accepts 1/0 or true/false.
           schema: { type: boolean, default: false }
         - name: verified
           in: query
