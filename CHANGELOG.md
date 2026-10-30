@@ -4,6 +4,28 @@ Versions track the `VERSION` const in `v1/ad-mockup.html` (mirrored in the
 `ad-mockup-version` meta tag). Param changes within `v1/` are additive-only;
 breaking changes ship as a new `v2/` directory.
 
+## 1.7.0 - 2026-10-30
+
+- TikTok in-feed now matches TikTok's own ad preview (Ads Manager) for the
+  same ad. Sizes scale with the frame width (CSS container units), so the
+  proportions hold at any embed size; the rail, type and icons are about a
+  quarter smaller than before.
+  - Removed the "LIVE" label and the invented "creator · Original audio" line;
+    TikTok's preview shows neither, for photo or video ads.
+  - The right rail sits lower, with the music disc level with the CTA.
+  - Carousel dots sit just above the name, and the "1/5" counter is gone.
+  - Photo posts (image and carousel) get a "Photo" badge beside the name.
+  - Caption in smaller type, about three lines (110 characters) before "more".
+  - "Sponsored" is a small grey tag; the CTA is a slim red button with centered
+    text and no chevron, red from the first frame.
+  - The caption scrim spans the full width, so it no longer leaves a hard
+    edge beside the rail.
+  - `nav=1`: the last tab reads "Me", and the bar scales with the width (54px
+    in a 320px frame, as before).
+- Add `statusbar=1` (TikTok): the phone's status bar above the tabs, as in
+  TikTok's preview. Off by default.
+- Engagement counts stay as passed in; TikTok's preview shows sample numbers.
+
 ## 1.6.2 - 2026-10-30
 
 - Fix: `ad-mockup:height` reported the page body's height, which is never less

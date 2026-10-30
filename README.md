@@ -67,7 +67,8 @@ Empty values are ignored (safe for Bubble expressions that resolve empty).
 | `saves` | TikTok bookmark count. When empty the bookmark shows `views`, as before 1.6.0 | empty |
 | `counts` | `1`/`0` - `0` hides engagement numbers and the Facebook feed counts row | `1` |
 | `omit` | comma- or pipe-separated fields the source does not have: `likes`, `comments`, `shares`, `saves`, `domain`, `description`. Each is left out of the mockup (its icon stays) instead of showing a default | empty |
-| `nav` | `1`/`0` - `1` adds the app's bottom tab bar under the screen (TikTok in-feed); the video area shrinks by the bar's 54px | `0` |
+| `nav` | `1`/`0` - `1` adds the app's bottom tab bar under the screen (TikTok in-feed); the video area shrinks by the bar's height, 17% of the frame width (54px in a 320px frame) | `0` |
+| `statusbar` | `1`/`0` - `1` adds the phone's status bar (9:41, signal, battery) above the tabs, as TikTok's own ad preview shows it (TikTok in-feed) | `0` |
 | `verified` | `1`/`0` — blue check (FB/Instagram/TikTok) | `0` |
 | `autoplay` | `1`/`0` — `0` shows tap-to-play overlay | `1` (YouTube: `0`) |
 | `ratio` | media aspect, e.g. `1:1`, `4:5`, `1.91:1`, `16:9` | FB `1:1`, Instagram `1:1`, TikTok `9:16`, Google `1.91:1`, YT `16:9`, Pinterest `2:3` |
@@ -88,7 +89,7 @@ OpenAPI tool (Swagger UI, Redoc, a client generator) to explore or build request
 openapi: 3.1.0
 info:
   title: Props Ad Mockup Renderer
-  version: 1.6.2
+  version: 1.7.0
   description: >
     Self-contained HTML renderer for social ad-placement mockups. No server, no
     build, no JSON — a GET with a query string returns a rendered preview. Params
@@ -205,7 +206,11 @@ paths:
           schema: { type: string, default: "" }
         - name: nav
           in: query
-          description: Show the app's bottom tab bar under the screen (TikTok in-feed). The bar is 54px tall and the video area shrinks by that much. Accepts 1/0 or true/false.
+          description: Show the app's bottom tab bar under the screen (TikTok in-feed). The bar is 17% of the frame width tall (54px in a 320px frame) and the video area shrinks by that much. Accepts 1/0 or true/false.
+          schema: { type: boolean, default: false }
+        - name: statusbar
+          in: query
+          description: Show the phone's status bar (9:41, signal, battery) above the tabs, as TikTok's own ad preview does (TikTok in-feed). Accepts 1/0 or true/false.
           schema: { type: boolean, default: false }
         - name: verified
           in: query
