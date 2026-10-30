@@ -211,8 +211,8 @@ paths:
           schema: { type: boolean, default: false }
         - name: photo
           in: query
-          description: TikTok's "Photo" badge beside the name, shown on photo posts. Empty shows it for format=carousel only, since a single image may be a video's cover. Accepts 1/0 or true/false.
-          schema: { type: boolean }
+          description: TikTok's "Photo" badge beside the name, shown on photo posts. Three states - 1/true shows it, 0/false hides it, and empty (the default) shows it for format=carousel only, since a single image may be a video's cover.
+          schema: { type: string, enum: ["", "1", "0", "true", "false"], default: "" }
         - name: statusbar
           in: query
           description: Show the phone's status bar (9:41, signal, battery) above the tabs, as TikTok's own ad preview does (TikTok in-feed). Accepts 1/0 or true/false.

@@ -14,14 +14,18 @@ breaking changes ship as a new `v2/` directory.
     TikTok's preview shows neither, for photo or video ads.
   - The right rail sits lower, with the music disc level with the CTA.
   - Carousel dots sit just above the name, and the "1/5" counter is gone.
+    Long carousels wrap the dots rather than run under the rail.
   - Carousels get TikTok's "Photo" badge beside the name.
   - Caption in smaller type, about three lines (110 characters) before "more".
+    An expanded caption scrolls inside 38% of the screen, so the name and
+    dots stay below the tabs.
   - "Sponsored" is a small grey tag; the CTA is a slim red button with centered
     text and no chevron, red from the first frame.
   - The caption scrim spans the full width, so it no longer leaves a hard
     edge beside the rail.
   - `nav=1`: the last tab reads "Me". The bar stays 54px tall.
-  - A CTA label that wraps grows the button, and a very long count is cut
+  - A CTA label that wraps grows the button (a single long word breaks
+    inside it), and a very long count is cut
     with an ellipsis so the rail cannot cover the CTA.
 - Add `statusbar=1` (TikTok): the phone's status bar above the tabs, as in
   TikTok's preview. Off by default.

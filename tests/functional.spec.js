@@ -310,6 +310,18 @@ test.describe("platform renderers", () => {
     expect(s.gap).toBeGreaterThan(0);
   });
 
+  test("tiktok: a CTA label with one long word wraps inside the button", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 569 });
+    await page.goto(PAGE + "?platform=tiktok&cta=" +
+      encodeURIComponent("www.anunusuallylonglandingpagedomainnameforus.com"));
+    const s = await page.locator(".tt-cta").evaluate((el) => ({
+      fits: el.scrollWidth <= el.clientWidth,
+      clear: el.getBoundingClientRect().right <= document.querySelector(".tt-rail").getBoundingClientRect().left,
+    }));
+    expect(s.fits).toBe(true);
+    expect(s.clear).toBe(true);
+  });
+
   test("tiktok: a very long count cannot push the rail over the CTA", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 569 });
     await page.goto(PAGE + "?platform=tiktok&likes=" + encodeURIComponent("12,345,678 likes"));
@@ -383,6 +395,37 @@ test.describe("platform renderers", () => {
     expect(before).toBeLessThanOrEqual(14);
     await page.locator(".js-see-more").click();
     await expect.poll(gap).toBeCloseTo(before, 0);
+  });
+
+  test("tiktok carousel: an expanded long caption scrolls and keeps the name and dots below the tabs", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 569 });
+    await page.goto(PAGE + "?platform=tiktok&format=carousel&media=" + TT_THREE +
+      "&copy=" + encodeURIComponent(LONG_COPY.repeat(8)));
+    await page.locator(".js-see-more").click();
+    const s = await page.evaluate(() => {
+      const box = (sel) => document.querySelector(sel).getBoundingClientRect();
+      const tabs = box(".tt-topnav").bottom;
+      const caption = document.querySelector(".tt-caption");
+      return { tabs, name: box(".tt-byline").top, dots: box(".js-car-dots").top,
+        height: caption.getBoundingClientRect().height, scrolls: caption.scrollHeight > caption.clientHeight };
+    });
+    expect(s.name).toBeGreaterThanOrEqual(s.tabs);
+    expect(s.dots).toBeGreaterThanOrEqual(s.tabs);
+    expect(s.height).toBeLessThanOrEqual(569 * 0.38 + 1);
+    expect(s.scrolls).toBe(true);
+  });
+
+  test("tiktok carousel: a 35-image carousel keeps every dot clear of the rail", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 569 });
+    await page.goto(PAGE + "?platform=tiktok&format=carousel&media=" +
+      encodeURIComponent(Array(35).fill(PX_RED).join("|")));
+    const s = await page.evaluate(() => {
+      const rail = document.querySelector(".tt-rail").getBoundingClientRect().left;
+      const dots = [...document.querySelectorAll(".js-car-dots .dot")].map((d) => d.getBoundingClientRect().right);
+      return { rail, count: dots.length, right: Math.max(...dots) };
+    });
+    expect(s.count).toBe(35);
+    expect(s.right).toBeLessThan(s.rail);
   });
 
   test("google: description row hidden when empty, shown when set", async ({ page }) => {

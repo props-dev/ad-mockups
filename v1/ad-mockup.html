@@ -235,17 +235,22 @@
     padding: calc(.3 * var(--u)) calc(1.2 * var(--u)); border-radius: calc(.8 * var(--u)); background: rgba(0,0,0,.2);
     font-size: calc(3.2 * var(--u)); font-weight: 600; }
   .tt-photo svg { width: calc(3.2 * var(--u)); height: calc(3.2 * var(--u)); fill: #fff; }
+  /* an expanded caption scrolls inside a bounded panel, as .vx-copy does */
   .tt-caption { font-size: calc(3.6 * var(--u)); line-height: 1.38; margin-top: calc(1.4 * var(--u)); color: rgba(255,255,255,.92);
-    text-shadow: 0 1px 2px rgba(0,0,0,.4); overflow-wrap: break-word; }
+    text-shadow: 0 1px 2px rgba(0,0,0,.4); overflow-wrap: break-word;
+    max-height: 38vh; overflow-y: auto; scrollbar-width: none; }
+  .tt-caption::-webkit-scrollbar { display: none; }
   .tt-sponsored { display: inline-block; margin-top: calc(2 * var(--u)); padding: calc(.4 * var(--u)) calc(1.2 * var(--u)); border-radius: calc(.6 * var(--u));
     font-size: calc(2.8 * var(--u)); font-weight: 500; color: rgba(255,255,255,.85); background: rgba(80,80,80,.7); }
   .tt-cta { display: flex; align-items: center; justify-content: center; margin-top: calc(3.9 * var(--u));
     width: 100%; min-height: calc(8.6 * var(--u)); padding: calc(1.2 * var(--u)) calc(3 * var(--u));
     border-radius: calc(1.2 * var(--u)); font-size: calc(3.4 * var(--u)); font-weight: 600; line-height: 1.25;
-    text-align: center; color: #fff; background: #fe2c55; }
+    text-align: center; overflow-wrap: anywhere; word-break: break-word; color: #fff; background: #fe2c55; }
   /* carousel dots sit just above the handle; --tt-bottom-h is the stack's
-     measured height (see wireTikTok) */
-  .tt .car-dots { top: auto; bottom: calc(var(--tt-bottom-h, calc(36 * var(--u))) + calc(2.4 * var(--u))); gap: calc(1.2 * var(--u)); z-index: 4; }
+     measured height (see wireTikTok). Equal insets keep them centered and
+     clear of the rail (count max-width plus its offset); long carousels wrap. */
+  .tt .car-dots { top: auto; bottom: calc(var(--tt-bottom-h, calc(36 * var(--u))) + calc(2.4 * var(--u)));
+    left: calc(22 * var(--u)); right: calc(22 * var(--u)); flex-wrap: wrap; gap: calc(1.2 * var(--u)); z-index: 4; }
   .tt .car-dots .dot { width: calc(1.5 * var(--u)); height: calc(1.5 * var(--u)); }
   .tt .car-counter { display: none; }
   /* above the rail and caption overlays (z-index 4); see placeNextArrows */
