@@ -251,6 +251,10 @@ test.describe("platform renderers", () => {
     expect(Math.round(nav.y + nav.height)).toBe(623);
     expect(top.y).toBeGreaterThanOrEqual(0);
     expect(cta.y + cta.height).toBeLessThanOrEqual(screen.y + screen.height);
+    // the bar is 54px at any width (README)
+    await page.setViewportSize({ width: 420, height: 800 });
+    await page.goto(PAGE + "?platform=tiktok&nav=1");
+    expect(Math.round((await page.locator(".tt-nav").boundingBox()).height)).toBe(54);
   });
 
   /* TikTok's own ad preview (TikTok Ads Manager) is the reference for the layout */
@@ -279,19 +283,47 @@ test.describe("platform renderers", () => {
     expect(tabs.y).toBeGreaterThanOrEqual(status.y + status.height);
   });
 
-  test("tiktok: photo posts show a Photo badge beside the name; video does not", async ({ page }) => {
-    for (const format of ["image", "carousel"]) {
-      await page.goto(PAGE + "?platform=tiktok&byline=name&creator=Uyen&format=" + format + "&media=" + TT_THREE);
-      await expect(page.locator(".tt-photo")).toHaveText("Photo");
+  test("tiktok: the Photo badge shows on carousels, and on a single image only with photo=1", async ({ page }) => {
+    const badge = async (query) => {
+      await page.goto(PAGE + "?platform=tiktok&byline=name&creator=Uyen&media=" + TT_THREE + "&" + query);
       await expect(page.locator(".tt-handle")).toHaveText("Uyen");
-    }
-    await page.goto(PAGE + "?platform=tiktok&format=video");
-    await expect(page.locator(".tt-photo")).toHaveCount(0);
+      return page.locator(".tt-photo").count();
+    };
+    expect(await badge("format=carousel")).toBe(1);
+    await expect(page.locator(".tt-photo")).toHaveText("Photo");
+    // a single image may be a video ad's cover, so it needs the explicit flag
+    expect(await badge("format=image")).toBe(0);
+    expect(await badge("format=image&photo=1")).toBe(1);
+    expect(await badge("format=carousel&photo=0")).toBe(0);
+    expect(await badge("format=video")).toBe(0);
+  });
+
+  test("tiktok: a CTA label that wraps grows the button", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 569 });
+    await page.goto(PAGE + "?platform=tiktok&cta=" +
+      encodeURIComponent("Download the app today and get fifty percent off your very first order with code PROPS"));
+    const s = await page.locator(".tt-cta").evaluate((el) => ({
+      fits: el.scrollHeight <= el.clientHeight,
+      gap: el.getBoundingClientRect().top - document.querySelector(".tt-sponsored").getBoundingClientRect().bottom,
+    }));
+    expect(s.fits).toBe(true);
+    expect(s.gap).toBeGreaterThan(0);
+  });
+
+  test("tiktok: a very long count cannot push the rail over the CTA", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 569 });
+    await page.goto(PAGE + "?platform=tiktok&likes=" + encodeURIComponent("12,345,678 likes"));
+    await expect(page.locator(".tt-rail-count").first()).toHaveText("12,345,678 likes");
+    const hit = await page.locator(".tt-cta").evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      return document.elementFromPoint(r.right - 2, r.top + r.height / 2) === el;
+    });
+    expect(hit).toBe(true);
   });
 
   test("tiktok: a long name ends in an ellipsis and keeps the Photo badge in view", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 569 });
-    await page.goto(PAGE + "?platform=tiktok&byline=name&verified=1&creator=" +
+    await page.goto(PAGE + "?platform=tiktok&byline=name&verified=1&photo=1&creator=" +
       encodeURIComponent("Automobile Club of Southern California Enterprises"));
     const s = await page.evaluate(() => {
       const name = document.querySelector(".tt-name"), stack = document.querySelector(".tt-bottom");

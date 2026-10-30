@@ -90,7 +90,7 @@ const PX_RED =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 const PX_BLUE =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
-for (const [platform, placement, height] of [["instagram", "feed", 700], ["facebook", "reels", 667]]) {
+for (const [platform, placement, height] of [["instagram", "feed", 700], ["facebook", "reels", 667], ["tiktok", "feed", 667]]) {
   test(`${platform}-${placement} / carousel with media`, async ({ page }) => {
     await page.setViewportSize({ width: 375, height });
     await page.goto(

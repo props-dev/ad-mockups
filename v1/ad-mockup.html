@@ -172,93 +172,98 @@
 
   /* ============================================================
      TIKTOK in-feed
-     Sizes are in cqw (1% of the phone's width), so the screen keeps the
-     proportions of TikTok's own ad preview at any frame size.
+     Sizes are multiples of --u, 1% of the phone's width, so the screen keeps
+     the proportions of TikTok's own ad preview at any frame size. Browsers
+     without container query units size it as a 375px phone.
      ============================================================ */
   .tt { position: relative; width: 100%; max-width: 420px; height: 100dvh; max-height: 100vh;
-    background: #000; color: #fff; overflow: hidden; container-type: inline-size;
+    background: #000; color: #fff; overflow: hidden; container-type: inline-size; --u: 3.75px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  @supports (width: 1cqw) { .tt { --u: 1cqw; } }
   .tt .media-shell { position: absolute; inset: 0; height: 100%; }
   .tt .carousel, .tt .car-track, .tt .car-item { height: 100%; }
   .tt-top { position: absolute; top: 0; left: 0; right: 0; z-index: 4;
     background: linear-gradient(rgba(0,0,0,.35), transparent); }
   /* statusbar=1: the phone's status bar above the tabs */
   .tt-status { display: flex; align-items: center; justify-content: space-between;
-    height: 8cqw; padding: 0 6cqw 0 9cqw; font-size: 4.3cqw; font-weight: 600; }
-  .tt-status svg { height: 3cqw; width: auto; fill: #fff; }
+    height: calc(8 * var(--u)); padding: 0 calc(6 * var(--u)) 0 calc(9 * var(--u)); font-size: calc(4.3 * var(--u)); font-weight: 600; }
+  .tt-status svg { height: calc(3 * var(--u)); width: auto; fill: #fff; }
   .tt-topnav { position: relative; display: flex; align-items: center; justify-content: center;
-    gap: 8cqw; padding: 3.3cqw 4cqw; font-size: 4.2cqw; }
+    gap: calc(8 * var(--u)); padding: calc(3.3 * var(--u)) calc(4 * var(--u)); font-size: calc(4.2 * var(--u)); }
   .tt-tab { color: rgba(255,255,255,.7); font-weight: 600; }
   .tt-tab.active { color: #fff; position: relative; }
-  .tt-tab.active::after { content: ""; position: absolute; left: 50%; width: 6cqw; margin-left: -3cqw;
-    bottom: -1.6cqw; height: .6cqw; background: #fff; border-radius: .3cqw; }
-  .tt-search { position: absolute; right: 4cqw; top: 50%; transform: translateY(-50%); display: flex; }
-  .tt-search svg { width: 5.4cqw; height: 5.4cqw; fill: #fff; }
+  .tt-tab.active::after { content: ""; position: absolute; left: 50%; width: calc(6 * var(--u)); margin-left: calc(-3 * var(--u));
+    bottom: calc(-1.6 * var(--u)); height: calc(.6 * var(--u)); background: #fff; border-radius: calc(.3 * var(--u)); }
+  .tt-search { position: absolute; right: calc(4 * var(--u)); top: 50%; transform: translateY(-50%); display: flex; }
+  .tt-search svg { width: calc(5.4 * var(--u)); height: calc(5.4 * var(--u)); fill: #fff; }
   /* right action rail, anchored so the disc lines up with the CTA */
-  .tt-rail { position: absolute; right: 1.7cqw; bottom: 3.7cqw; z-index: 4;
-    display: flex; flex-direction: column; align-items: center; gap: 4.5cqw; }
-  .tt-rail-avatar { position: relative; margin-bottom: 1.2cqw; }
-  .tt-rail-avatar .avatar { width: 11.8cqw; height: 11.8cqw; border: 1.5px solid #fff; font-size: 4.6cqw; }
-  .tt-follow { position: absolute; left: 50%; bottom: -2.3cqw; transform: translateX(-50%);
-    width: 4.6cqw; height: 4.6cqw; border-radius: 50%; background: #fe2c55;
+  .tt-rail { position: absolute; right: calc(1.7 * var(--u)); bottom: calc(3.7 * var(--u)); z-index: 4;
+    display: flex; flex-direction: column; align-items: center; gap: calc(4.5 * var(--u)); }
+  .tt-rail-avatar { position: relative; margin-bottom: calc(1.2 * var(--u)); }
+  .tt-rail-avatar .avatar { width: calc(11.8 * var(--u)); height: calc(11.8 * var(--u)); border: 1.5px solid #fff; font-size: calc(4.6 * var(--u)); }
+  .tt-follow { position: absolute; left: 50%; bottom: calc(-2.3 * var(--u)); transform: translateX(-50%);
+    width: calc(4.6 * var(--u)); height: calc(4.6 * var(--u)); border-radius: 50%; background: #fe2c55;
     display: flex; align-items: center; justify-content: center; }
-  .tt-follow svg { width: 2.4cqw; height: 2.4cqw; fill: #fff; }
-  .tt-rail-item { display: flex; flex-direction: column; align-items: center; gap: .6cqw; }
-  .tt-rail.no-counts .tt-rail-item { min-height: 11.8cqw; }
-  .tt-rail-item svg { width: 7.4cqw; height: 7.4cqw; fill: #fff;
+  .tt-follow svg { width: calc(2.4 * var(--u)); height: calc(2.4 * var(--u)); fill: #fff; }
+  .tt-rail-item { display: flex; flex-direction: column; align-items: center; gap: calc(.6 * var(--u)); }
+  .tt-rail.no-counts .tt-rail-item { min-height: calc(11.8 * var(--u)); }
+  .tt-rail-item svg { width: calc(7.4 * var(--u)); height: calc(7.4 * var(--u)); fill: #fff;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
-  .tt-rail-count { font-size: 3.2cqw; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
-  .tt-disc { width: 9.9cqw; height: 9.9cqw; border-radius: 50%; margin-top: 1.1cqw;
+  /* capped so a long count cannot push the rail over the CTA */
+  .tt-rail-count { font-size: calc(3.2 * var(--u)); font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,.5);
+    max-width: calc(20 * var(--u)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tt-disc { width: calc(9.9 * var(--u)); height: calc(9.9 * var(--u)); border-radius: 50%; margin-top: calc(1.1 * var(--u));
     background: radial-gradient(circle at center, #333 34%, #111 40%, #2c2c2c 58%, #111 78%);
     display: flex; align-items: center; justify-content: center;
     animation: tt-spin 6s linear infinite; }
-  .tt-disc .avatar { width: 5.2cqw; height: 5.2cqw; font-size: 2cqw; }
+  .tt-disc .avatar { width: calc(5.2 * var(--u)); height: calc(5.2 * var(--u)); font-size: calc(2 * var(--u)); }
   @keyframes tt-spin { to { transform: rotate(360deg); } }
   /* bottom-left stack; the scrim spans the full width and lets clicks through
      to the rail and media */
   .tt-bottom { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
-    padding: 0 26cqw 4.2cqw 3.2cqw; pointer-events: none; }
+    padding: 0 calc(26 * var(--u)) calc(4.2 * var(--u)) calc(3.2 * var(--u)); pointer-events: none; }
   .tt-bottom::before { content: ""; position: absolute; z-index: -1; left: 0; right: 0; bottom: 0;
-    top: -16cqw; background: linear-gradient(transparent, rgba(0,0,0,.45)); }
+    top: calc(-16 * var(--u)); background: linear-gradient(transparent, rgba(0,0,0,.45)); }
   .tt-bottom > * { pointer-events: auto; }
-  .tt-byline { display: flex; align-items: center; gap: 2cqw; min-width: 0; }
-  .tt-handle { font-size: 4.2cqw; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,.5);
-    display: flex; align-items: center; gap: 1.3cqw; min-width: 0; }
+  .tt-byline { display: flex; align-items: center; gap: calc(2 * var(--u)); min-width: 0; }
+  .tt-handle { font-size: calc(4.2 * var(--u)); font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,.5);
+    display: flex; align-items: center; gap: calc(1.3 * var(--u)); min-width: 0; }
   .tt-name { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tt-handle .verified { flex-shrink: 0; display: flex; }
-  .tt-handle .verified svg { width: 3.5cqw; height: 3.5cqw; fill: #20d5ec; }
-  .tt-photo { flex-shrink: 0; display: inline-flex; align-items: center; gap: 1cqw;
-    padding: .3cqw 1.2cqw; border-radius: .8cqw; background: rgba(0,0,0,.2);
-    font-size: 3.2cqw; font-weight: 600; }
-  .tt-photo svg { width: 3.2cqw; height: 3.2cqw; fill: #fff; }
-  .tt-caption { font-size: 3.6cqw; line-height: 1.38; margin-top: 1.4cqw; color: rgba(255,255,255,.92);
+  .tt-handle .verified svg { width: calc(3.5 * var(--u)); height: calc(3.5 * var(--u)); fill: #20d5ec; }
+  .tt-photo { flex-shrink: 0; display: inline-flex; align-items: center; gap: calc(1 * var(--u));
+    padding: calc(.3 * var(--u)) calc(1.2 * var(--u)); border-radius: calc(.8 * var(--u)); background: rgba(0,0,0,.2);
+    font-size: calc(3.2 * var(--u)); font-weight: 600; }
+  .tt-photo svg { width: calc(3.2 * var(--u)); height: calc(3.2 * var(--u)); fill: #fff; }
+  .tt-caption { font-size: calc(3.6 * var(--u)); line-height: 1.38; margin-top: calc(1.4 * var(--u)); color: rgba(255,255,255,.92);
     text-shadow: 0 1px 2px rgba(0,0,0,.4); overflow-wrap: break-word; }
-  .tt-sponsored { display: inline-block; margin-top: 2cqw; padding: .4cqw 1.2cqw; border-radius: .6cqw;
-    font-size: 2.8cqw; font-weight: 500; color: rgba(255,255,255,.85); background: rgba(80,80,80,.7); }
-  .tt-cta { display: flex; align-items: center; justify-content: center; margin-top: 3.9cqw;
-    width: 100%; height: 8.6cqw; padding: 0 3cqw; border-radius: 1.2cqw;
-    font-size: 3.4cqw; font-weight: 600; color: #fff; background: #fe2c55; }
+  .tt-sponsored { display: inline-block; margin-top: calc(2 * var(--u)); padding: calc(.4 * var(--u)) calc(1.2 * var(--u)); border-radius: calc(.6 * var(--u));
+    font-size: calc(2.8 * var(--u)); font-weight: 500; color: rgba(255,255,255,.85); background: rgba(80,80,80,.7); }
+  .tt-cta { display: flex; align-items: center; justify-content: center; margin-top: calc(3.9 * var(--u));
+    width: 100%; min-height: calc(8.6 * var(--u)); padding: calc(1.2 * var(--u)) calc(3 * var(--u));
+    border-radius: calc(1.2 * var(--u)); font-size: calc(3.4 * var(--u)); font-weight: 600; line-height: 1.25;
+    text-align: center; color: #fff; background: #fe2c55; }
   /* carousel dots sit just above the handle; --tt-bottom-h is the stack's
      measured height (see wireTikTok) */
-  .tt .car-dots { top: auto; bottom: calc(var(--tt-bottom-h, 36cqw) + 2.4cqw); gap: 1.2cqw; z-index: 4; }
-  .tt .car-dots .dot { width: 1.5cqw; height: 1.5cqw; }
+  .tt .car-dots { top: auto; bottom: calc(var(--tt-bottom-h, calc(36 * var(--u))) + calc(2.4 * var(--u))); gap: calc(1.2 * var(--u)); z-index: 4; }
+  .tt .car-dots .dot { width: calc(1.5 * var(--u)); height: calc(1.5 * var(--u)); }
   .tt .car-counter { display: none; }
   /* above the rail and caption overlays (z-index 4); see placeNextArrows */
   .tt .car-arrow { z-index: 5; }
-  .tt .mute-btn { bottom: auto; top: 16cqw; right: 3.5cqw; }
-  .tt.tt-has-status .mute-btn { top: 24cqw; }
+  .tt .mute-btn { bottom: auto; top: calc(16 * var(--u)); right: calc(3.5 * var(--u)); }
+  .tt.tt-has-status .mute-btn { top: calc(24 * var(--u)); }
   /* nav=1: the app's bottom tab bar under a full-height screen */
   .tt.tt-has-nav { display: flex; flex-direction: column; }
   .tt-screen { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
-  .tt-nav { flex: 0 0 17cqw; display: flex; align-items: center; justify-content: space-around;
-    padding: 0 2cqw .6cqw; background: #000; border-top: 1px solid rgba(255,255,255,.12); }
-  .tt-nav-item { display: flex; flex-direction: column; align-items: center; gap: .6cqw; width: 16cqw;
-    font-size: 2.8cqw; font-weight: 500; color: rgba(255,255,255,.62); }
+  .tt-nav { flex: 0 0 54px; display: flex; align-items: center; justify-content: space-around;
+    padding: 0 calc(2 * var(--u)) calc(.6 * var(--u)); background: #000; border-top: 1px solid rgba(255,255,255,.12); }
+  .tt-nav-item { display: flex; flex-direction: column; align-items: center; gap: calc(.6 * var(--u)); width: calc(16 * var(--u));
+    font-size: calc(2.8 * var(--u)); font-weight: 500; color: rgba(255,255,255,.62); }
   .tt-nav-item.active { color: #fff; font-weight: 600; }
-  .tt-nav-item svg { width: 6.6cqw; height: 6.6cqw; fill: currentColor; }
-  .tt-create { position: relative; width: 11cqw; height: 7.4cqw; border-radius: 2cqw; background: #fff;
-    box-shadow: -.9cqw 0 0 #25f4ee, .9cqw 0 0 #fe2c55; display: flex; align-items: center; justify-content: center; }
-  .tt-create svg { width: 4.2cqw; height: 4.2cqw; fill: #000; }
+  .tt-nav-item svg { width: calc(6.6 * var(--u)); height: calc(6.6 * var(--u)); fill: currentColor; }
+  .tt-create { position: relative; width: calc(11 * var(--u)); height: calc(7.4 * var(--u)); border-radius: calc(2 * var(--u)); background: #fff;
+    box-shadow: calc(-.9 * var(--u)) 0 0 #25f4ee, calc(.9 * var(--u)) 0 0 #fe2c55; display: flex; align-items: center; justify-content: center; }
+  .tt-create svg { width: calc(4.2 * var(--u)); height: calc(4.2 * var(--u)); fill: #000; }
 
   /* ============================================================
      GOOGLE Demand Gen / Discover card
@@ -636,6 +641,8 @@ window.AD_MOCKUP_PARAMS = {
   // omit: "saves,domain",              // fields the source does not have: drawn without them
                                         // (likes, comments, shares, saves, domain, description)
   // nav: "0",                          // 1 = app bottom tab bar (TikTok in-feed)
+  // statusbar: "0",                    // 1 = phone status bar above the tabs (TikTok in-feed)
+  // photo: "",                         // 1/0 = TikTok Photo badge; empty = carousels only
   // verified: "1",                     // blue check (facebook / tiktok)
   // autoplay: "1",                     // 0 = show tap-to-play overlay instead
   // ratio: "1:1",                      // media aspect, e.g. 1:1, 4:5, 1.91:1, 16:9
@@ -677,6 +684,7 @@ window.AD_MOCKUP_PARAMS = {
     omit: "",
     nav: "0",
     statusbar: "0",
+    photo: "",
     verified: "0",
     autoplay: "1",
     ratio: ""
@@ -780,6 +788,8 @@ window.AD_MOCKUP_PARAMS = {
     p.counts = boolish(p.counts);
     p.nav = boolish(p.nav);
     p.statusbar = boolish(p.statusbar);
+    /* TikTok Photo badge: carousels are photo posts; a single image may be a video's cover */
+    p.photo = isBlank(p.photo) ? p.format === "carousel" : boolish(p.photo);
     p.verified = boolish(p.verified);
     p.autoplay = boolish(p.autoplay);
     var omit = {};
@@ -1187,8 +1197,8 @@ window.AD_MOCKUP_PARAMS = {
     var status = p.statusbar
       ? '<div class="tt-status" aria-hidden="true"><span>9:41</span>' + I.status + '</div>'
       : '';
-    /* TikTok marks photo posts (single image or carousel) next to the name */
-    var photo = p.format === "video" ? '' : '<span class="tt-photo">' + I.photo + 'Photo</span>';
+    /* TikTok marks photo posts next to the name */
+    var photo = p.photo ? '<span class="tt-photo">' + I.photo + 'Photo</span>' : '';
     return '<div class="tt' + (p.nav ? ' tt-has-nav' : '') + (p.statusbar ? ' tt-has-status' : '') + '">' +
       (p.nav ? '<div class="tt-screen">' : '') +
       mediaHtml(p, { dark: true, fill: true }) +
@@ -1419,12 +1429,17 @@ window.AD_MOCKUP_PARAMS = {
   }
   /* TikTok's carousel dots sit just above the caption stack, which grows when
      See more opens: publish the stack's height for the dots to sit on */
+  var ttStackObserver = null;
   function wireTikTok(root) {
+    if (ttStackObserver) ttStackObserver.disconnect();
     var tt = root.querySelector(".tt");
     var bottom = tt && tt.querySelector(".tt-bottom");
     if (!bottom) return;
     function place() { tt.style.setProperty("--tt-bottom-h", bottom.getBoundingClientRect().height + "px"); }
-    if ("ResizeObserver" in window) new ResizeObserver(place).observe(bottom);
+    if ("ResizeObserver" in window) {
+      ttStackObserver = new ResizeObserver(place);
+      ttStackObserver.observe(bottom);
+    }
     place();
   }
   /* Meta CTAs settle into their brand colour shortly after the ad appears */

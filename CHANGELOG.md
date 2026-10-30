@@ -14,16 +14,22 @@ breaking changes ship as a new `v2/` directory.
     TikTok's preview shows neither, for photo or video ads.
   - The right rail sits lower, with the music disc level with the CTA.
   - Carousel dots sit just above the name, and the "1/5" counter is gone.
-  - Photo posts (image and carousel) get a "Photo" badge beside the name.
+  - Carousels get TikTok's "Photo" badge beside the name.
   - Caption in smaller type, about three lines (110 characters) before "more".
   - "Sponsored" is a small grey tag; the CTA is a slim red button with centered
     text and no chevron, red from the first frame.
   - The caption scrim spans the full width, so it no longer leaves a hard
     edge beside the rail.
-  - `nav=1`: the last tab reads "Me", and the bar scales with the width (54px
-    in a 320px frame, as before).
+  - `nav=1`: the last tab reads "Me". The bar stays 54px tall.
+  - A CTA label that wraps grows the button, and a very long count is cut
+    with an ellipsis so the rail cannot cover the CTA.
 - Add `statusbar=1` (TikTok): the phone's status bar above the tabs, as in
   TikTok's preview. Off by default.
+- Add `photo` (TikTok): `1` shows the "Photo" badge on a single-image photo
+  post, `0` hides it. Empty shows it for carousels only, because a single
+  image may be a video ad's cover.
+- Browsers without CSS container query units (Safari before 16, Chrome before
+  105) size the TikTok screen as a 375px phone.
 - Engagement counts stay as passed in; TikTok's preview shows sample numbers.
 
 ## 1.6.2 - 2026-10-30
