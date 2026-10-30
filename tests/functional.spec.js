@@ -518,3 +518,108 @@ test.describe("observability", () => {
     expect(msg.height).toBeGreaterThan(0);
   });
 });
+
+test.describe("carousel arrows are clickable on every template", () => {
+  const THREE = encodeURIComponent(PX_RED + "|" + PX_BLUE + "|" + PX_RED);
+  const LONG_COUNTS = "&likes=1,234,567,890&comments=987,654,321&shares=123,456,789&saves=55,555,555&views=9,876,543";
+  /* README "Suggested iframe sizes"; full-screen templates also at the 320 x 569
+     frame the Media Auditor embeds them in. */
+  const TALL = [{ width: 375, height: 667 }, { width: 320, height: 569 }];
+  const CASES = [
+    ["facebook", "feed", [{ width: 375, height: 660 }]],
+    ["facebook", "story", TALL],
+    ["facebook", "reels", TALL, true],
+    ["facebook", "instream", [{ width: 375, height: 440 }]],
+    ["facebook", "marketplace", [{ width: 375, height: 640 }]],
+    ["instagram", "feed", [{ width: 375, height: 700 }]],
+    ["instagram", "reels", TALL, true],
+    ["instagram", "story", TALL],
+    ["tiktok", "", TALL, true],
+    ["youtube", "feed", [{ width: 375, height: 420 }]],
+    ["youtube", "shorts", TALL, true],
+    ["youtube", "desktop", [{ width: 560, height: 480 }]],
+    ["google", "", [{ width: 375, height: 440 }]],
+    ["pinterest", "", [{ width: 375, height: 700 }]],
+  ];
+  const arrowState = () => {
+    const car = document.querySelector(".js-carousel").getBoundingClientRect();
+    const box = (sel) => document.querySelector(sel).getBoundingClientRect();
+    const clear = (sel) => {
+      const b = document.querySelector(sel), r = b.getBoundingClientRect();
+      return b.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+    };
+    const rail = document.querySelector(".tt-rail, .vx-rail, .yts-rail");
+    return {
+      prevClear: clear(".js-car-prev"), nextClear: clear(".js-car-next"),
+      prevInset: Math.round(box(".js-car-prev").left - car.left),
+      nextInset: Math.round(car.right - box(".js-car-next").right),
+      gapToRail: rail ? Math.round(rail.getBoundingClientRect().left - box(".js-car-next").right) : null,
+      besideRail: rail ? (() => {
+        const r = rail.getBoundingClientRect(), n = box(".js-car-next");
+        return n.bottom > r.top && n.top < r.bottom;
+      })() : false,
+    };
+  };
+  for (const [platform, placement, sizes, hasRail] of CASES) {
+    const label = platform + (placement ? " " + placement : "");
+    const base = PAGE + "?platform=" + platform + (placement ? "&placement=" + placement : "") + "&format=carousel&media=" + THREE;
+    for (const size of sizes) {
+      test(`${label} at ${size.width}x${size.height}: nothing covers either arrow`, async ({ page }) => {
+        await page.setViewportSize(size);
+        await page.goto(base);
+        await expect(page.locator(".js-carousel")).toHaveCount(1);
+        const s = await page.evaluate(arrowState);
+        expect(s.prevClear && s.nextClear).toBe(true);
+        if (s.besideRail) expect(s.gapToRail).toBeGreaterThanOrEqual(8);
+        // no rail at the arrow's height: Next keeps the inset that mirrors Prev
+        else expect(s.nextInset).toBe(s.prevInset);
+      });
+      if (hasRail) {
+        test(`${label} at ${size.width}x${size.height}: long counts widen the rail, Next stays clear`, async ({ page }) => {
+          await page.setViewportSize(size);
+          await page.goto(base + LONG_COUNTS);
+          const s = await page.evaluate(arrowState);
+          expect(s.nextClear).toBe(true);
+          expect(s.gapToRail).toBeGreaterThanOrEqual(8);
+        });
+      }
+    }
+  }
+
+  for (const size of TALL) {
+    test(`facebook reels at ${size.width}x${size.height}, counts=0 with the caption expanded: both arrows stay clickable`, async ({ page }) => {
+      await page.setViewportSize(size);
+      await page.goto(PAGE + "?platform=facebook&placement=reels&counts=0&format=carousel&media=" + THREE +
+        "&copy=" + encodeURIComponent(LONG_COPY + " " + LONG_COPY));
+      await page.locator(".js-see-more").click();
+      const s = await page.evaluate(arrowState);
+      expect(s.prevClear && s.nextClear).toBe(true);
+      if (s.besideRail) expect(s.gapToRail).toBeGreaterThanOrEqual(8);
+      else expect(s.nextInset).toBe(s.prevInset);
+    });
+  }
+
+  test("tiktok in the auditor frame: Next and Prev advance by click", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 569 });
+    await page.goto(PAGE + "?platform=tiktok&format=carousel&media=" + THREE);
+    await page.locator(".js-car-next").click({ timeout: 2000 });
+    await expect(page.locator(".js-car-counter")).toHaveText("2/3");
+    await page.locator(".js-car-next").click({ timeout: 2000 });
+    await expect(page.locator(".js-car-counter")).toHaveText("3/3");
+    await page.locator(".js-car-prev").click({ timeout: 2000 });
+    await expect(page.locator(".js-car-counter")).toHaveText("2/3");
+  });
+
+  test("a frame laid out at zero size places Next once it gets a size", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 569 });
+    await page.setContent('<iframe id="f" style="display:none;width:320px;height:569px;border:0"></iframe>');
+    await page.locator("#f").evaluate((f, src) => { f.src = src; }, "http://127.0.0.1:4173" + PAGE + "?platform=tiktok&format=carousel&media=" + THREE);
+    const frame = page.frameLocator("#f");
+    await page.waitForTimeout(300);
+    await page.locator("#f").evaluate((f) => { f.style.display = "block"; });
+    await expect.poll(() => frame.locator("body").evaluate(() => {
+      const rail = document.querySelector(".tt-rail").getBoundingClientRect();
+      return Math.round(rail.left - document.querySelector(".js-car-next").getBoundingClientRect().right);
+    })).toBeGreaterThanOrEqual(8);
+  });
+});

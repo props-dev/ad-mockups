@@ -88,7 +88,7 @@ OpenAPI tool (Swagger UI, Redoc, a client generator) to explore or build request
 openapi: 3.1.0
 info:
   title: Props Ad Mockup Renderer
-  version: 1.6.0
+  version: 1.6.1
   description: >
     Self-contained HTML renderer for social ad-placement mockups. No server, no
     build, no JSON — a GET with a query string returns a rendered preview. Params

@@ -4,6 +4,14 @@ Versions track the `VERSION` const in `v1/ad-mockup.html` (mirrored in the
 `ad-mockup-version` meta tag). Param changes within `v1/` are additive-only;
 breaking changes ship as a new `v2/` directory.
 
+## 1.6.1 - 2026-10-30
+
+- Fix: the carousel Next arrow sat under the right-hand action rail on TikTok,
+  Facebook and Instagram Reels, and YouTube Shorts, so clicking it did nothing.
+  It now sits just left of the rail, measured after each render and on resize,
+  so long counts cannot cover it. Where the rail does not reach the arrow
+  (`counts=0`), or there is no rail, Next keeps the default inset. Swipe and the Prev arrow were unaffected; no params change.
+
 ## 1.6.0 - 2026-10-29
 
 - Add Facebook placements `reels`, `instream` and `marketplace`, and a new
