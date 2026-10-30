@@ -333,6 +333,10 @@ resize for auto-sizing embeds.
 | `youtube` desktop | 560 × 480 | Wider — 16:9 player + title + channel/action rows. Scales to any width |
 | `pinterest` | 375 × 700 | 2:3 image + title + Promoted-by row |
 
+A host that auto-sizes from `ad-mockup:height` gets at least a 9:16 frame at its
+width for the full-screen rows (plus 54px with `nav=1`); a fixed-height frame is
+filled as given.
+
 ## Rollout
 
 1. Pilot on one episode page; keep the existing Bubble `generate-*-mockups-*` flows
