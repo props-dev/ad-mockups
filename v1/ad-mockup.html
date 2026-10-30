@@ -8,7 +8,7 @@
      object/fetch even if an escaping bug slipped through. script-src must stay
      'unsafe-inline' because the whole app is the inline script below. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src https: data:; media-src https:; base-uri 'none'; form-action 'none'">
-<meta name="ad-mockup-version" content="1.6.1">
+<meta name="ad-mockup-version" content="1.6.2">
 <title>Ad Preview</title>
 <style>
   /* ============ base ============ */
@@ -638,7 +638,7 @@ window.AD_MOCKUP_PARAMS = {
 
   /* Bump on any change; keep in sync with the ad-mockup-version meta tag.
      Param changes must be additive-only — Bubble pages depend on this contract. */
-  var VERSION = "1.6.1";
+  var VERSION = "1.6.2";
 
   /* ---------------- defaults ---------------- */
   var COMMON = {
@@ -1469,14 +1469,31 @@ window.AD_MOCKUP_PARAMS = {
   }
   render();
 
-  /* report height to parent (hosted-iframe embeds can auto-size) */
+  /* report height to parent (hosted-iframe embeds can auto-size). Measure the
+     content, not the body: html and body are height: 100%, so the body's height
+     is never less than the frame's and a short card could only ever grow it.
+     Observe the body for frame resizes and the root for content changes. */
+  /* Full-screen templates fill the frame, so their own height is only the
+     frame's. They report at least a 9:16 phone at their width (plus the tab
+     bar), so a frame a host shrank for a short card grows back. */
   function postHeight() {
+    var height = root.getBoundingClientRect().height;
+    var shell = root.firstElementChild;
+    if (shell && shell.matches(".tt, .vx, .yts, .fbs")) {
+      var nav = shell.querySelector(".tt-nav");
+      height = Math.max(height, shell.getBoundingClientRect().width * 16 / 9 +
+        (nav ? nav.getBoundingClientRect().height : 0));
+    }
     try {
-      parent.postMessage({ type: "ad-mockup:height", height: document.body.scrollHeight,
-        version: VERSION }, "*");
+      parent.postMessage({ type: "ad-mockup:height",
+        height: Math.ceil(height), version: VERSION }, "*");
     } catch (e) { /* no parent */ }
   }
-  if ("ResizeObserver" in window) new ResizeObserver(postHeight).observe(document.body);
+  if ("ResizeObserver" in window) {
+    var heightObserver = new ResizeObserver(postHeight);
+    heightObserver.observe(document.body);
+    heightObserver.observe(root);
+  }
   postHeight();
 
   /* accept live param updates without a reload (avoids Bubble re-render flicker) */
@@ -1485,6 +1502,8 @@ window.AD_MOCKUP_PARAMS = {
     if (!d || d.type !== "ad-mockup:params" || typeof d.params !== "object") return;
     window.AD_MOCKUP_PARAMS = Object.assign({}, window.AD_MOCKUP_PARAMS, d.params);
     render();
+    /* a new template can land at the same size, which the observer never sees */
+    postHeight();
   });
 })();
 </script>

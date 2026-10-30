@@ -623,3 +623,114 @@ test.describe("carousel arrows are clickable on every template", () => {
     })).toBeGreaterThanOrEqual(8);
   });
 });
+
+test.describe("height report fits the content", () => {
+  /* Host the renderer the way embeds do: a sandboxed iframe at a guessed height. */
+  const reports = async (page, query, frame) => {
+    await page.setViewportSize({ width: 900, height: 1000 });
+    await page.setContent(
+      `<script>window.h = []; addEventListener("message", (e) => {
+        if (e.data && e.data.type === "ad-mockup:height") window.h.push(e.data.height); });</script>` +
+      `<iframe id="f" sandbox="allow-scripts" style="border:0;width:${frame.width}px;height:${frame.height}px"
+        src="http://127.0.0.1:4173${PAGE}?${query}"></iframe>`
+    );
+    await expect.poll(() => page.evaluate(() => window.h.length)).toBeGreaterThan(0);
+    return () => page.evaluate(() => window.h[window.h.length - 1]);
+  };
+  const contentHeight = (page) => page.frames()[1].evaluate(() =>
+    Math.ceil(document.getElementById("root").getBoundingClientRect().height));
+
+  for (const query of ["platform=google", "platform=youtube", "platform=instagram"]) {
+    test(`${query} in a taller frame reports its own height, not the frame's`, async ({ page }) => {
+      const last = await reports(page, query, { width: 380, height: 620 });
+      const content = await contentHeight(page);
+      expect(content).toBeLessThan(620);
+      await expect.poll(last).toBe(content);
+    });
+  }
+
+  test("facebook taller than the frame reports its full height", async ({ page }) => {
+    const last = await reports(page, "platform=facebook", { width: 380, height: 400 });
+    const content = await contentHeight(page);
+    expect(content).toBeGreaterThan(400);
+    await expect.poll(last).toBe(content);
+  });
+
+  test("full-screen tiktok reports the frame height", async ({ page }) => {
+    const last = await reports(page, "platform=tiktok", { width: 320, height: 569 });
+    await expect.poll(last).toBe(569);
+  });
+
+  test("full-screen tiktok in a frame shorter than 9:16 reports the 9:16 height", async ({ page }) => {
+    const last = await reports(page, "platform=tiktok", { width: 320, height: 300 });
+    await expect.poll(last).toBe(569);
+    const withNav = await reports(page, "platform=tiktok&nav=1", { width: 320, height: 300 });
+    await expect.poll(withNav).toBe(623);
+  });
+
+  test("an auto-sizing host grows back to a phone after a short card", async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 1000 });
+    await page.setContent(
+      `<script>window.h = []; addEventListener("message", (e) => {
+        if (!e.data || e.data.type !== "ad-mockup:height") return;
+        window.h.push(e.data.height);
+        document.getElementById("f").style.height = e.data.height + "px"; });</script>` +
+      `<iframe id="f" sandbox="allow-scripts" style="border:0;width:375px;height:667px"
+        src="http://127.0.0.1:4173${PAGE}"></iframe>`
+    );
+    // like the Media Auditor: a constant src, params arrive by postMessage
+    await expect.poll(() => page.evaluate(() => window.h.length)).toBeGreaterThan(0);
+    const post = (params) => page.locator("#f").evaluate((f, params) =>
+      f.contentWindow.postMessage({ type: "ad-mockup:params", params }, "*"), params);
+    const frameHeight = () => page.locator("#f").evaluate((f) => f.getBoundingClientRect().height);
+    await post({ platform: "google" });
+    await expect.poll(frameHeight).toBeLessThan(500);
+    await post({ platform: "tiktok" });
+    await expect.poll(frameHeight).toBe(667);
+  });
+
+  /* A host that applies every report to the frame, as the Media Auditor does,
+     must settle on the content height instead of chasing its own resize. */
+  const TEMPLATES = [
+    "platform=facebook", "platform=facebook&placement=reels", "platform=facebook&placement=instream",
+    "platform=facebook&placement=marketplace", "platform=facebook&placement=story",
+    "platform=instagram", "platform=instagram&placement=reels", "platform=instagram&placement=story",
+    "platform=tiktok", "platform=google", "platform=youtube", "platform=youtube&placement=shorts",
+    "platform=youtube&placement=desktop", "platform=pinterest",
+  ];
+  for (const query of TEMPLATES) {
+    for (const format of ["image", "video", "carousel"]) {
+      test(`auto-sizing host settles on ${query}&format=${format}`, async ({ page }) => {
+        const width = /placement=desktop/.test(query) ? 560 : 380;
+        await page.setViewportSize({ width: 900, height: 1000 });
+        await page.setContent(
+          `<script>window.h = []; addEventListener("message", (e) => {
+            if (!e.data || e.data.type !== "ad-mockup:height") return;
+            window.h.push(e.data.height);
+            document.getElementById("f").style.height = e.data.height + "px"; });</script>` +
+          `<iframe id="f" sandbox="allow-scripts" style="border:0;width:${width}px;height:620px"
+            src="http://127.0.0.1:4173${PAGE}?${query}&format=${format}"></iframe>`
+        );
+        // settled: no new report across a 300ms window, polled so a slow runner just waits longer
+        await expect.poll(async () => {
+          const before = await page.evaluate(() => window.h.length);
+          await page.waitForTimeout(300);
+          return before > 0 && before === await page.evaluate(() => window.h.length);
+        }, { timeout: 10000 }).toBe(true);
+        const h = await page.evaluate(() => window.h);
+        expect(h.length, `too many reports: ${h.join(",")}`).toBeLessThan(8);
+        expect(h[h.length - 1]).toBeGreaterThan(150);
+        expect(h[h.length - 1]).toBe(await contentHeight(page));
+      });
+    }
+  }
+
+  test("expanding See more re-reports the taller height", async ({ page }) => {
+    const last = await reports(page, "platform=facebook&copy=" + encodeURIComponent(LONG_COPY + " " + LONG_COPY),
+      { width: 380, height: 900 });
+    const before = await last();
+    await page.frameLocator("#f").locator(".js-see-more").click();
+    await expect.poll(last).toBeGreaterThan(before);
+    await expect.poll(last).toBe(await contentHeight(page));
+  });
+});
