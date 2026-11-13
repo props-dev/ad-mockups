@@ -4,6 +4,14 @@ Versions track the `VERSION` const in `v1/ad-mockup.html` (mirrored in the
 `ad-mockup-version` meta tag). Param changes within `v1/` are additive-only;
 breaking changes ship as a new `v2/` directory.
 
+## 1.8.0 - 2026-11-13
+
+- `omit` accepts `cta`. With `omit=cta` the CTA button is left out on every
+  template: no default label, no empty button, and not the icon inside it.
+  The rest of the card is unchanged (the story swipe-up chevrons stay). For
+  ads whose CTA is "Not Set" (PROD-2764).
+- Without `cta` in `omit`, every placement renders exactly as before.
+
 ## 1.7.0 - 2026-10-30
 
 - TikTok in-feed now matches TikTok's own ad preview (Ads Manager) for the

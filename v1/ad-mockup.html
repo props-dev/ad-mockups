@@ -8,7 +8,7 @@
      object/fetch even if an escaping bug slipped through. script-src must stay
      'unsafe-inline' because the whole app is the inline script below. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src https: data:; media-src https:; base-uri 'none'; form-action 'none'">
-<meta name="ad-mockup-version" content="1.7.0">
+<meta name="ad-mockup-version" content="1.8.0">
 <title>Ad Preview</title>
 <style>
   /* ============ base ============ */
@@ -644,7 +644,7 @@ window.AD_MOCKUP_PARAMS = {
   // saves: "1.1K",                     // TikTok bookmark count; falls back to views when unset
   // counts: "1",                     // 0 = hide engagement numbers
   // omit: "saves,domain",              // fields the source does not have: drawn without them
-                                        // (likes, comments, shares, saves, domain, description)
+                                        // (likes, comments, shares, saves, domain, description, cta)
   // nav: "0",                          // 1 = app bottom tab bar (TikTok in-feed)
   // statusbar: "0",                    // 1 = phone status bar above the tabs (TikTok in-feed)
   // photo: "",                         // 1/0 = TikTok Photo badge; empty = carousels only
@@ -662,7 +662,7 @@ window.AD_MOCKUP_PARAMS = {
 
   /* Bump on any change; keep in sync with the ad-mockup-version meta tag.
      Param changes must be additive-only — Bubble pages depend on this contract. */
-  var VERSION = "1.7.0";
+  var VERSION = "1.8.0";
 
   /* ---------------- defaults ---------------- */
   var COMMON = {
@@ -867,6 +867,8 @@ window.AD_MOCKUP_PARAMS = {
   }
   /* omit lists fields the source genuinely lacks; they are left out, never faked */
   function omitted(p, key) { return !!p.omit[key]; }
+  /* omit=cta: no button at all, not an empty one or the default label */
+  function ctaHtml(p, html) { return omitted(p, "cta") ? "" : html; }
   function countSpan(p, key, cls, value) {
     if (!p.counts || omitted(p, key)) return "";
     return '<span class="' + cls + '">' + esc(value) + '</span>';
@@ -1019,7 +1021,7 @@ window.AD_MOCKUP_PARAMS = {
         (omitted(p, "domain") ? "" : '<div class="fb-domain">' + esc(p.domain) + '</div>') +
         '<div class="fb-headline">' + esc(p.headline) + '</div>' +
         (isBlank(p.description) || omitted(p, "description") ? "" : '<div class="fb-desc">' + esc(p.description) + '</div>') +
-      '</div><button class="fb-cta">' + esc(p.cta) + '</button></div>' +
+      '</div>' + ctaHtml(p, '<button class="fb-cta">' + esc(p.cta) + '</button>') + '</div>' +
       fbCountsRow(p) +
       '<div class="fb-actions">' +
         '<button class="fb-action">' + I.thumb + 'Like</button>' +
@@ -1067,7 +1069,7 @@ window.AD_MOCKUP_PARAMS = {
         '<div class="vx-rail-item"><span class="wf">' + I.dots + '</span></div></div>' +
       '<div class="vx-bottom">' + vxId(p, p.creator, true) +
         (isBlank(p.copy) ? "" : '<div class="vx-copy">' + copyHtml(p.copy, 70) + '</div>') +
-        '<button class="vx-cta js-hot-cta"><span>' + esc(p.cta) + '</span>' + I.chevR + '</button>' +
+        ctaHtml(p, '<button class="vx-cta js-hot-cta"><span>' + esc(p.cta) + '</span>' + I.chevR + '</button>') +
       '</div>' +
     '</div>';
   }
@@ -1087,7 +1089,7 @@ window.AD_MOCKUP_PARAMS = {
           (p.verified ? verifiedBadge : "") + '</div>' +
           '<div class="fbi-headline">' + esc(p.headline) + '</div>' +
           (omitted(p, "domain") ? "" : '<div class="fbi-sub">' + esc(p.domain) + '</div>') + '</div>' +
-        '<button class="fbi-cta">' + esc(p.cta) + '</button></div>' +
+        ctaHtml(p, '<button class="fbi-cta">' + esc(p.cta) + '</button>') + '</div>' +
       '<div class="fbi-host-foot"><span class="fbi-bar" style="width:80%"></span>' +
         '<span class="fbi-bar" style="width:55%"></span></div>' +
     '</div>';
@@ -1108,7 +1110,7 @@ window.AD_MOCKUP_PARAMS = {
         '<div class="fbm-tile">' + mediaHtml(tile) +
           '<div class="fbm-tile-text"><div class="fbm-headline">' + esc(p.headline) + '</div>' +
           '<div class="fbm-by">Sponsored &middot; ' + esc(p.creator) + '</div>' +
-          '<span class="fbm-cta">' + esc(p.cta) + '</span></div></div>' +
+          ctaHtml(p, '<span class="fbm-cta">' + esc(p.cta) + '</span>') + '</div></div>' +
         skel + skel + skel +
       '</div>' +
     '</div>';
@@ -1123,7 +1125,7 @@ window.AD_MOCKUP_PARAMS = {
         '<div class="ig-id"><div class="ig-name">' + esc(name) + (p.verified ? verifiedBadge : "") + '</div>' +
         '<div class="ig-sponsored">Sponsored</div></div>' + I.dots + '</div>' +
       mediaHtml(p) +
-      '<button class="ig-cta js-hot-cta"><span>' + esc(p.cta) + '</span>' + I.chevR + '</button>' +
+      ctaHtml(p, '<button class="ig-cta js-hot-cta"><span>' + esc(p.cta) + '</span>' + I.chevR + '</button>') +
       '<div class="ig-actions">' + S.heart + S.comment + S.send + '<span class="ig-save">' + S.save + '</span></div>' +
       (hasCount(p, "likes") ? '<div class="ig-likes">' + esc(p.likes) + ' likes</div>' : "") +
       (isBlank(p.copy) ? "" : '<div class="ig-caption"><b>' + esc(name) + '</b> ' + copyHtml(p.copy, 90, "more") + '</div>') +
@@ -1145,7 +1147,7 @@ window.AD_MOCKUP_PARAMS = {
       '<div class="vx-bottom">' + vxId(p, name, true) +
         (isBlank(p.copy) ? "" : '<div class="vx-copy">' + copyHtml(p.copy, 60, "more") + '</div>') +
         '<div class="vx-music">' + I.note + '<span>' + esc(name) + ' &middot; Original audio</span></div>' +
-        '<button class="vx-cta js-hot-cta"><span>' + esc(p.cta) + '</span>' + I.chevR + '</button>' +
+        ctaHtml(p, '<button class="vx-cta js-hot-cta"><span>' + esc(p.cta) + '</span>' + I.chevR + '</button>') +
       '</div>' +
     '</div>';
   }
@@ -1163,7 +1165,7 @@ window.AD_MOCKUP_PARAMS = {
       '<div class="igs-bottom">' +
         (isBlank(p.copy) ? "" : '<div class="igs-copy">' + ellipsize(p.copy, 90) + '</div>') +
         '<span class="igs-chevron">' + I.chevU + '</span>' +
-        '<button class="igs-cta">' + S.link + '<span>' + esc(p.cta) + '</span></button>' +
+        ctaHtml(p, '<button class="igs-cta">' + S.link + '<span>' + esc(p.cta) + '</span></button>') +
       '</div>' +
     '</div>';
   }
@@ -1185,7 +1187,7 @@ window.AD_MOCKUP_PARAMS = {
       '<div class="fbs-bottom">' +
         (isBlank(p.copy) ? "" : '<div class="fbs-copy">' + ellipsize(p.copy, 90) + '</div>') +
         '<span class="fbs-chevron">' + I.chevU + '</span>' +
-        '<button class="fbs-cta">' + esc(p.cta) + '</button>' +
+        ctaHtml(p, '<button class="fbs-cta">' + esc(p.cta) + '</button>') +
       '</div>' +
     '</div>';
   }
@@ -1226,7 +1228,7 @@ window.AD_MOCKUP_PARAMS = {
           (p.verified ? verifiedBadge : "") + '</div>' + photo + '</div>' +
         '<div class="tt-caption">' + copyHtml(p.copy, 110, "more") + '</div>' +
         '<div class="tt-sponsored">Sponsored</div>' +
-        '<button class="tt-cta">' + esc(p.cta) + '</button>' +
+        ctaHtml(p, '<button class="tt-cta">' + esc(p.cta) + '</button>') +
       '</div>' +
       (p.nav ? '</div>' + nav : '') +
     '</div>';
@@ -1243,7 +1245,7 @@ window.AD_MOCKUP_PARAMS = {
           '<span class="gg-sponsored">Sponsored</span>' +
           '<span class="gg-menu">' + I.dotsV + '</span></div>' +
         (isBlank(p.description) || omitted(p, "description") ? "" : '<div class="gg-desc">' + esc(truncate(p.description, 90).shown) + '</div>') +
-        '<button class="gg-cta">' + esc(p.cta) + I.chevR + '</button>' +
+        ctaHtml(p, '<button class="gg-cta">' + esc(p.cta) + I.chevR + '</button>') +
       '</div>' +
     '</div>';
   }
@@ -1265,7 +1267,7 @@ window.AD_MOCKUP_PARAMS = {
           '<div class="yt-sub">Sponsored &middot; ' + esc(p.business) + '</div></div>' +
         '<span class="yt-menu">' + I.dotsV + '</span></div>' +
       (isBlank(p.description) || omitted(p, "description") ? "" : '<div class="yt-desc">' + esc(p.description) + '</div>') +
-      '<button class="yt-cta">' + esc(p.cta) + I.ext + '</button>' +
+      ctaHtml(p, '<button class="yt-cta">' + esc(p.cta) + I.ext + '</button>') +
     '</div>';
   }
 
@@ -1287,7 +1289,7 @@ window.AD_MOCKUP_PARAMS = {
           '<span class="yts-chan-name">' + esc(p.business) + '</span></div>' +
         (isBlank(p.copy) ? "" : '<div class="yts-copy">' + ellipsize(p.copy, 80) + '</div>') +
         '<div class="yts-sponsored">' + I.info + 'Sponsored</div>' +
-        '<button class="yts-cta"><span>' + esc(p.cta) + '</span>' + I.chevR + '</button>' +
+        ctaHtml(p, '<button class="yts-cta"><span>' + esc(p.cta) + '</span>' + I.chevR + '</button>') +
       '</div>' +
     '</div>';
   }
@@ -1299,7 +1301,7 @@ window.AD_MOCKUP_PARAMS = {
           '<div class="ytd-companion-text">' +
             '<div class="ytd-companion-head">' + esc(truncate(p.headline, 40).shown) + '</div>' +
             (omitted(p, "domain") ? "" : '<div class="ytd-companion-sub">' + esc(p.domain) + '</div>') + '</div>' +
-          '<button class="ytd-companion-cta">' + esc(p.cta) + '</button></div>' +
+          ctaHtml(p, '<button class="ytd-companion-cta">' + esc(p.cta) + '</button>') + '</div>' +
         '<span class="ytd-adchip">Ad</span>' +
         '<button class="ytd-skip">Skip' + I.skip + '</button>' +
         /* time + scrubber are static stand-ins until wireYouTubeTime binds
