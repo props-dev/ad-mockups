@@ -610,6 +610,31 @@ test.describe("platform renderers", () => {
     await expect(page.locator(".vx-rail-count")).toHaveText(["84", "23"]);
   });
 
+  test("omit=cta leaves the CTA button out instead of showing a default", async ({ page }) => {
+    const ctas = ".fb-cta, .fbs-cta, .vx-cta, .fbi-cta, .fbm-cta, .ig-cta, .igs-cta, " +
+      ".tt-cta, .gg-cta, .yt-cta, .yts-cta, .ytd-companion-cta";
+    await page.goto(PAGE + "?cta=Tap%20Here%20Now&omit=cta");
+    await expect(page.locator(".fb-headline")).toBeVisible();
+    await expect(page.locator(".fb-cta")).toHaveCount(0);
+    await expect(page.locator("#root")).not.toContainText("Tap Here Now");
+    await page.goto(PAGE + "?platform=google&omit=cta");
+    await expect(page.locator(".gg-headline")).toBeVisible();
+    await expect(page.locator(".gg-cta")).toHaveCount(0);
+    await expect(page.locator("#root")).not.toContainText("Shop now");
+    await page.goto(PAGE + "?platform=tiktok&omit=saves|CTA");
+    await expect(page.locator(".tt-name")).toBeVisible();
+    await expect(page.locator(".tt-cta")).toHaveCount(0);
+    await expect(page.locator(".tt-rail-count")).toHaveText(["1.2K", "84", "23"]);
+    for (const q of ["platform=instagram&placement=story", "platform=facebook&placement=story",
+      "platform=instagram&placement=reels", "platform=youtube&placement=desktop"]) {
+      await page.goto(PAGE + "?" + q + "&omit=cta");
+      await expect(page.locator("#root > *")).not.toHaveCount(0);
+      await expect(page.locator(ctas)).toHaveCount(0);
+    }
+    await page.goto(PAGE + "?platform=instagram&placement=story&omit=cta");
+    await expect(page.locator(".igs-chevron svg")).toHaveCount(1);
+  });
+
   test("instagram feed carousel: real media gets dots and counter that advance", async ({ page }) => {
     await page.goto(PAGE + "?platform=instagram&format=carousel&media=" + encodeURIComponent(PX_RED + "|" + PX_BLUE));
     await expect(page.locator(".ig .car-item")).toHaveCount(2);

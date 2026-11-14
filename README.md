@@ -66,7 +66,7 @@ Empty values are ignored (safe for Bubble expressions that resolve empty).
 | `likes` / `comments` / `shares` / `views` | display strings (`1.2K` fine). Instagram feed drops the likes or comments line when its value is `0` | plausible defaults |
 | `saves` | TikTok bookmark count. When empty the bookmark shows `views`, as before 1.6.0 | empty |
 | `counts` | `1`/`0` - `0` hides engagement numbers and the Facebook feed counts row | `1` |
-| `omit` | comma- or pipe-separated fields the source does not have: `likes`, `comments`, `shares`, `saves`, `domain`, `description`. Each is left out of the mockup (its icon stays) instead of showing a default | empty |
+| `omit` | comma- or pipe-separated fields the source does not have: `likes`, `comments`, `shares`, `saves`, `domain`, `description`, `cta`. Each is left out of the mockup (its icon stays) instead of showing a default. `cta` leaves the CTA button out entirely: no button, no default label, and no icon | empty |
 | `nav` | `1`/`0` - `1` adds the app's bottom tab bar under the screen (TikTok in-feed); the video area shrinks by the bar's 54px | `0` |
 | `photo` | `1`/`0` - TikTok's "Photo" badge beside the name, which TikTok shows on photo posts. Empty shows it for `format=carousel` only, since a single image may be a video's cover; pass `1` for a single-image photo post | empty |
 | `statusbar` | `1`/`0` - `1` adds the phone's status bar (9:41, signal, battery) above the tabs, as TikTok's own ad preview shows it (TikTok in-feed) | `0` |
@@ -90,7 +90,7 @@ OpenAPI tool (Swagger UI, Redoc, a client generator) to explore or build request
 openapi: 3.1.0
 info:
   title: Props Ad Mockup Renderer
-  version: 1.7.0
+  version: 1.8.0
   description: >
     Self-contained HTML renderer for social ad-placement mockups. No server, no
     build, no JSON — a GET with a query string returns a rendered preview. Params
@@ -202,8 +202,9 @@ paths:
           in: query
           description: >
             Comma- or pipe-separated fields the source does not have (likes,
-            comments, shares, saves, domain, description). Each is left out of
-            the mockup instead of showing a default; icons stay.
+            comments, shares, saves, domain, description, cta). Each is left out
+            of the mockup instead of showing a default; icons stay. cta leaves
+            the CTA button out entirely (no button, no default label).
           schema: { type: string, default: "" }
         - name: nav
           in: query
