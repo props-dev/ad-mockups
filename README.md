@@ -43,7 +43,7 @@ The `v1/` param schema is a **versioned public API** — Bubble pages depend on 
 
 ## Parameters
 
-Precedence: **query string → `window.AD_MOCKUP_PARAMS` → per-platform defaults.**
+Precedence: **`ad-mockup:params` messages → query string → `window.AD_MOCKUP_PARAMS` → per-platform defaults.**
 Empty values are ignored (safe for Bubble expressions that resolve empty).
 
 | Param | Values | Default |
@@ -90,7 +90,7 @@ OpenAPI tool (Swagger UI, Redoc, a client generator) to explore or build request
 openapi: 3.1.0
 info:
   title: Props Ad Mockup Renderer
-  version: 1.8.0
+  version: 1.8.1
   description: >
     Self-contained HTML renderer for social ad-placement mockups. No server, no
     build, no JSON — a GET with a query string returns a rendered preview. Params
@@ -105,7 +105,8 @@ paths:
       description: >
         Returns an HTML document rendering the requested placement. Unknown params
         are ignored; blank values fall back to the per-platform default. Precedence:
-        query string > window.AD_MOCKUP_PARAMS (paste-in mode) > per-platform defaults.
+        ad-mockup:params messages > query string > window.AD_MOCKUP_PARAMS
+        (paste-in mode) > per-platform defaults.
       parameters:
         - name: platform
           in: query
@@ -249,6 +250,8 @@ paths:
   than a 9:16 phone at their width, plus the tab bar with `nav=1`.
 - **Accepts** `{ type: "ad-mockup:params", params }` — merges `params` (same keys as the
   query params) and re-renders in place with no reload (see Pattern C below).
+  Posted params win over the URL query string and inline `window.AD_MOCKUP_PARAMS`;
+  keys not sent keep their current values (including those from earlier messages).
 
 ## Bubble integration
 
