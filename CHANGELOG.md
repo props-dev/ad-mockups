@@ -4,6 +4,16 @@ Versions track the `VERSION` const in `v1/ad-mockup.html` (mirrored in the
 `ad-mockup-version` meta tag). Param changes within `v1/` are additive-only;
 breaking changes ship as a new `v2/` directory.
 
+## 1.8.1 - 2026-11-16
+
+- Settings sent by an `ad-mockup:params` message now replace the values from
+  the iframe URL query string and inline `window.AD_MOCKUP_PARAMS` (for
+  example `copy`, `format`, `platform`, `media`). Before, a setting already in
+  the URL kept its URL value. Fixes PROD-3594.
+- Settings not sent keep their values: the URL/inline value, or the value from
+  an earlier message. Without a message, the query string still wins over
+  inline params as before.
+
 ## 1.8.0 - 2026-11-13
 
 - `omit` accepts `cta`. With `omit=cta` the CTA button is left out on every

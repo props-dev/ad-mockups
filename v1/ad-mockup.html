@@ -8,7 +8,7 @@
      object/fetch even if an escaping bug slipped through. script-src must stay
      'unsafe-inline' because the whole app is the inline script below. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src https: data:; media-src https:; base-uri 'none'; form-action 'none'">
-<meta name="ad-mockup-version" content="1.8.0">
+<meta name="ad-mockup-version" content="1.8.1">
 <title>Ad Preview</title>
 <style>
   /* ============ base ============ */
@@ -621,7 +621,8 @@
    iFrame" ticked), set params here. Bubble dynamic data goes in with
    ":formatted as JSON-safe" (it outputs a quoted, escaped string —
    do NOT add your own quotes around those).
-   URL query-string params override anything set here.
+   URL query-string params override anything set here, and live
+   ad-mockup:params updates override both.
    ===================================================================== */
 window.AD_MOCKUP_PARAMS = {
   // platform: "facebook",              // facebook | instagram | tiktok | google | youtube | pinterest
@@ -662,7 +663,7 @@ window.AD_MOCKUP_PARAMS = {
 
   /* Bump on any change; keep in sync with the ad-mockup-version meta tag.
      Param changes must be additive-only — Bubble pages depend on this contract. */
-  var VERSION = "1.8.0";
+  var VERSION = "1.8.1";
 
   /* ---------------- defaults ---------------- */
   var COMMON = {
@@ -763,15 +764,18 @@ window.AD_MOCKUP_PARAMS = {
     if (media.length) q.media = media;
     return q;
   }
+  /* params received live via ad-mockup:params messages; applied last, so they
+     win over the URL query and inline AD_MOCKUP_PARAMS */
+  var live = {};
   function computeParams() {
     var inline = window.AD_MOCKUP_PARAMS || {};
     var query = readQuery();
-    var platform = query.platform || inline.platform || "facebook";
+    var platform = live.platform || query.platform || inline.platform || "facebook";
     platform = String(platform).toLowerCase().trim();
     if (!PLATFORM_DEFAULTS[platform]) platform = "facebook";
 
     var p = {};
-    var layers = [COMMON, PLATFORM_DEFAULTS[platform], inline, query];
+    var layers = [COMMON, PLATFORM_DEFAULTS[platform], inline, query, live];
     layers.forEach(function (layer) {
       for (var k in layer) {
         if (!Object.prototype.hasOwnProperty.call(layer, k)) continue;
@@ -1556,7 +1560,7 @@ window.AD_MOCKUP_PARAMS = {
   window.addEventListener("message", function (ev) {
     var d = ev.data;
     if (!d || d.type !== "ad-mockup:params" || typeof d.params !== "object") return;
-    window.AD_MOCKUP_PARAMS = Object.assign({}, window.AD_MOCKUP_PARAMS, d.params);
+    Object.assign(live, d.params);
     render();
     /* a new template can land at the same size, which the observer never sees */
     postHeight();
